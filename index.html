@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>화면구현 수업 자료</title>
+<style>
+/* 레이아웃: 한 열 목록 — 머리말 → 단원별 자료 카드(풀 순서대로) */
+:root {
+  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
+  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
+  --code-bg: #1d2628; --code-text: #e6efef;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+    --code-bg: #0c1112; --code-text: #e6efef;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+  --code-bg: #0c1112; --code-text: #e6efef;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px; word-break: keep-all; overflow-wrap: anywhere;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+.head { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 22px 20px; margin-bottom: 24px; }
+.head .path { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 13px; color: #7fd6cf; margin: 0 0 6px; }
+.head h1 { margin: 0 0 6px; font-size: 24px; text-wrap: balance; }
+.head p { margin: 0; color: #b9c9cb; font-size: 15px; }
+h2 { font-size: 15px; letter-spacing: .04em; color: var(--sub); margin: 0 0 10px; }
+.list { display: grid; gap: 12px; margin-bottom: 28px; }
+.item {
+  display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  color: inherit; text-decoration: none;
+}
+.item:hover { border-color: var(--accent); }
+.item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num {
+  width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
+  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
+}
+.body { min-width: 0; }
+.body h3 { margin: 0; font-size: 17px; }
+.body p { margin: 2px 0 0; font-size: 14px; color: var(--sub); }
+.tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+.go { font-weight: 700; color: var(--accent); white-space: nowrap; font-size: 15px; }
+@media (max-width: 480px) {
+  .item { grid-template-columns: 40px 1fr; }
+  .num { width: 40px; height: 40px; }
+  .go { grid-column: 2; }
+}
+.foot { font-size: 13px; color: var(--sub); border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <p class="path">project / style.css · header.jsp · footer.jsp</p>
+    <h1>응용프로그래밍 화면구현 수업 자료</h1>
+    <p>JSP · HTML · CSS 화면구현 형성평가와 코드 직접 입력 연습입니다. 선생님이 안내한 순서대로 푸세요.</p>
+  </header>
+
+  <h2>형성평가와 연습 (위에서부터 차례로)</h2>
+  <div class="list">
+    <a class="item" href="quiz-basic/">
+      <div class="num">1</div>
+      <div class="body">
+        <h3>화면구현 기초 형성평가</h3>
+        <p>jsp:include, form, a href, link, value, colspan, table 구조</p>
+        <span class="tag">4지선다 10문항</span>
+      </div>
+      <span class="go">시작 →</span>
+    </a>
+    <a class="item" href="quiz-style-css/">
+      <div class="num">2</div>
+      <div class="body">
+        <h3>style.css 형성평가</h3>
+        <p>position, top, line-height, margin과 padding, class 선택자</p>
+        <span class="tag">4지선다 20문항 · 학번·이름 입력</span>
+      </div>
+      <span class="go">시작 →</span>
+    </a>
+    <a class="item" href="style-css-practice/">
+      <div class="num">3</div>
+      <div class="body">
+        <h3>style.css 직접 입력 연습</h3>
+        <p>값 채우기 → 설명 보고 쓰기 → 속성 쓰기 → 백지 쓰기</p>
+        <span class="tag">4단계 · 단계마다 100점 인증</span>
+      </div>
+      <span class="go">시작 →</span>
+    </a>
+    <a class="item" href="quiz-jsp-pages/">
+      <div class="num">4</div>
+      <div class="body">
+        <h3>JSP 페이지 구성 형성평가</h3>
+        <p>header.jsp(nav), footer.jsp, 등록·목록·수정 화면과 style.css</p>
+        <span class="tag">4지선다 20문항 · 학번·이름 입력</span>
+      </div>
+      <span class="go">시작 →</span>
+    </a>
+  </div>
+
+  <p class="foot">결과 화면은 캡처해서 클래스룸에 제출하세요. 페이지를 새로고침하면 처음부터 다시 풀어야 합니다.</p>
+</div>
+</body>
+</html>

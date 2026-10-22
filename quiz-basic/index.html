@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면구현 형성평가</title>
+<style>
+:root {
+  --bg: #f5f6f8; --card: #ffffff; --text: #1d2330; --sub: #5b6475; --line: #d9dde5;
+  --accent: #2f5bd3; --accent-soft: #e8eefc;
+  --ok: #1d8a4a; --ok-soft: #e4f5ea; --ng: #c93a3a; --ng-soft: #fbe9e9;
+  --code-bg: #1f2533; --code-text: #e8ecf4;
+  --easy: #1d8a4a; --mid: #c27a00; --hard: #c93a3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14171d; --card: #1d212a; --text: #e6e9ef; --sub: #a0a8b8; --line: #343a47;
+    --accent: #7c9cff; --accent-soft: #252e45;
+    --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222;
+    --code-bg: #0e1117; --code-text: #e8ecf4;
+    --easy: #4cc27c; --mid: #e3a73a; --hard: #ef6b6b;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 110px; }
+header.top h1 { font-size: 22px; margin: 4px 0 4px; }
+header.top p { margin: 0 0 16px; color: var(--sub); font-size: 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 16px; margin-bottom: 16px;
+}
+.qhead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.qno { font-weight: 700; font-size: 15px; }
+.badge {
+  font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.badge.쉬움 { color: var(--easy); } .badge.보통 { color: var(--mid); } .badge.어려움 { color: var(--hard); }
+.qtext { margin: 0 0 12px; font-weight: 600; }
+pre {
+  background: var(--code-bg); color: var(--code-text); border-radius: 10px;
+  padding: 12px 14px; margin: 0 0 14px; overflow-x: auto;
+  font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 13.5px; line-height: 1.55;
+}
+fieldset { border: 0; padding: 0; margin: 0; }
+legend { position: absolute; left: -9999px; }
+.opt {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  padding: 11px 12px; margin-bottom: 8px; cursor: pointer; min-height: 46px;
+}
+.opt input { margin: 4px 0 0; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
+.opt .num { font-weight: 700; flex-shrink: 0; }
+.opt .txt { word-break: break-all; }
+.opt .txt.code { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 14px; }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+.opt.wrong { border-color: var(--ng); background: var(--ng-soft); }
+.locked .opt { cursor: default; }
+.mark { font-size: 13px; font-weight: 700; margin-left: auto; flex-shrink: 0; padding-left: 6px; }
+.correct .mark { color: var(--ok); } .wrong .mark { color: var(--ng); }
+.fb { display: none; margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; font-size: 15px; }
+.fb.show { display: block; }
+.verdict { font-weight: 700; margin-bottom: 6px; }
+.verdict.ok { color: var(--ok); } .verdict.ng { color: var(--ng); }
+.fb h4 { margin: 10px 0 4px; font-size: 14px; color: var(--sub); }
+.fb p { margin: 0; }
+.fb ul { margin: 4px 0 0; padding-left: 18px; }
+.fb li { margin-bottom: 6px; }
+.fb li.mine { font-weight: 600; }
+.tag-mine { font-size: 12px; color: var(--ng); font-weight: 700; }
+#result { display: none; text-align: center; }
+#result.show { display: block; }
+#result .score { font-size: 44px; font-weight: 800; color: var(--accent); margin: 4px 0; }
+#result .detail { color: var(--sub); margin: 0 0 6px; }
+#result .lv { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-size: 14px; margin-bottom: 14px; }
+.btn {
+  appearance: none; border: 0; border-radius: 10px; padding: 13px 22px;
+  font-size: 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: #fff;
+}
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+  border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+}
+.bar .in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar .prog { flex: 1; font-size: 14px; color: var(--sub); }
+.bar .prog b { color: var(--text); }
+#warn { color: var(--ng); font-size: 13px; display: none; }
+#warn.show { display: block; }
+.bottom-retry { text-align: center; display: none; }
+.bottom-retry.show { display: block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" style="display:inline-block;margin:0 0 8px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none">← 수업 자료 목록</a>
+  <header class="top">
+    <h1>응용프로그래밍 화면구현 형성평가</h1>
+    <p>JSP · HTML · CSS 코드 확인 | 4지선다 10문항 | 문항을 모두 풀고 제출하세요.</p>
+  </header>
+
+  <section id="result" class="card" aria-live="polite">
+    <div>내 점수</div>
+    <div class="score" id="score"></div>
+    <p class="detail" id="detail"></p>
+    <div class="lv" id="lvDetail"></div>
+    <p class="detail">아래에서 문항별 정답 근거와 오답 해설을 확인하세요.</p>
+    <button class="btn" type="button" onclick="retry()">다시 풀기</button>
+  </section>
+
+  <div id="quiz"></div>
+
+  <div class="bottom-retry" id="bottomRetry">
+    <button class="btn" type="button" onclick="retry()">다시 풀기</button>
+  </div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="prog">
+      <div>푼 문항 <b id="cnt">0</b> / 10</div>
+      <div id="warn"></div>
+    </div>
+    <button class="btn" type="button" id="submitBtn" onclick="grade()">제출하기</button>
+  </div>
+</div>
+
+<script>
+var QUESTIONS = [
+  {
+    lv: "쉬움",
+    q: "모든 페이지의 위쪽에 공통 파일 header.jsp를 불러오려고 한다. 올바른 코드는?",
+    code: null, codeOpts: true,
+    opts: [
+      '<jsp:include page="header.jsp"></jsp:include>',
+      '<jsp:include href="header.jsp"></jsp:include>',
+      '<include page="header.jsp"></include>',
+      '<jsp:include page="header"></jsp:include>'
+    ],
+    ans: 0,
+    basis: "공통 파일은 jsp:include 태그를 쓰고, page 속성에 불러올 파일 이름을 확장자 .jsp까지 정확하게 적는다.",
+    why: [
+      null,
+      "href는 a 태그(페이지 이동)와 link 태그(CSS 연결)에서 쓰는 속성이다. jsp:include는 page 속성을 사용한다.",
+      "태그 이름 앞의 jsp: 가 빠졌다. 공통 파일을 불러오는 태그는 반드시 jsp:include로 써야 한다.",
+      "파일 이름에 .jsp가 빠졌다. page에는 실제 파일 이름과 똑같이 header.jsp라고 적어야 한다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "등록 화면에서 여러 입력칸과 버튼을 하나의 입력 양식으로 묶으려고 한다. ????? 자리에 들어갈 태그는?",
+    code: '<?????>\n    <table border="1">\n        <tr>\n            <th>성명</th>\n            <td><input type="text" name="name"></td>\n        </tr>\n        ...\n    </table>\n</?????>',
+    codeOpts: true,
+    opts: ["section", "table", "form", "input"],
+    ans: 2,
+    basis: "form은 여러 입력칸(input)과 버튼을 하나의 입력 양식으로 묶어 주는 태그이다. 등록 화면과 수정 화면은 form 안에 table을 넣어 만든다.",
+    why: [
+      "section은 header, nav, footer와 구분되는 본문 영역을 나누는 태그이다. 입력 양식을 묶지는 않는다.",
+      "table은 이미 form 안쪽에 있다. table은 입력칸을 표 모양으로 배치할 뿐, 입력 양식으로 묶는 역할은 form이 한다.",
+      null,
+      "input은 입력칸이나 버튼 하나를 만드는 태그이고, 닫는 태그가 없어 다른 태그를 감쌀 수 없다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "목록조회 화면에서 수험번호 2026001을 클릭하면 update.jsp로 이동하게 하려고 한다. 올바른 코드는?",
+    code: null, codeOpts: true,
+    opts: [
+      '<td><a link="update.jsp">2026001</a></td>',
+      '<td><a href="update.jsp">2026001</a></td>',
+      '<td href="update.jsp">2026001</td>',
+      '<td><a src="update.jsp">2026001</a></td>'
+    ],
+    ans: 1,
+    basis: "페이지 이동은 a 태그의 href 속성에 이동할 파일 이름을 적는다. a 태그는 nav뿐 아니라 td 안에도 쓸 수 있다.",
+    why: [
+      "a 태그에는 link라는 속성이 없다. 이동할 주소는 href에 적는다.",
+      null,
+      "td 태그에 href를 써도 클릭해서 이동하지 않는다. 클릭으로 이동하려면 td 안에 a 태그를 넣어야 한다.",
+      "src는 페이지 이동에 쓰는 속성이 아니다. a 태그로 이동할 때는 href를 쓴다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "header.jsp에서 디자인 파일 style.css를 연결하려고 한다. 올바른 코드는?",
+    code: null, codeOpts: true,
+    opts: [
+      '<link src="style.css" rel="stylesheet">',
+      '<style href="style.css">',
+      '<link href="style.jsp" rel="stylesheet">',
+      '<link href="style.css" rel="stylesheet">'
+    ],
+    ans: 3,
+    basis: 'CSS 파일은 link 태그로 연결하며, href="style.css"(파일 위치)와 rel="stylesheet"(디자인 파일이라는 뜻)를 함께 쓴다.',
+    why: [
+      "link 태그는 파일 위치를 src가 아니라 href에 적는다.",
+      "style 태그는 CSS 코드를 직접 적는 태그이고, href로 파일을 연결하지 않는다. 외부 CSS 파일은 link 태그로 연결한다.",
+      "디자인 파일의 이름은 style.css이다. 확장자를 .jsp로 쓰면 파일을 찾지 못해 CSS가 적용되지 않는다.",
+      null
+    ]
+  },
+  {
+    lv: "보통",
+    q: "목록에서 2026001(김하늘)을 클릭해 update.jsp로 이동했다. 성명 입력칸에 '김하늘'이 미리 표시되도록 하는 코드는?",
+    code: null, codeOpts: true,
+    opts: [
+      '<input type="text" name="김하늘">',
+      '<input type="text" name="name" value="김하늘">',
+      '<input type="text" name="name">김하늘</input>',
+      '<input type="김하늘" name="name">'
+    ],
+    ans: 1,
+    basis: "value는 입력칸에 초기값을 미리 표시하는 속성이다. 수정 화면에서는 기존 데이터를 value에 넣어 보여 준다. name은 입력칸을 구분하는 이름이다.",
+    why: [
+      "name은 입력칸을 구분하는 이름일 뿐 화면에 보이지 않는다. 그래서 입력칸은 비어 있게 된다.",
+      null,
+      "input은 닫는 태그가 없는 태그이다. 뒤에 적은 '김하늘'은 입력칸 안이 아니라 입력칸 바깥에 일반 글자로 나타난다.",
+      "type은 입력칸의 종류(text, submit, reset)를 정하는 속성이다. 엉뚱한 값을 쓰면 빈 일반 입력칸이 될 뿐 '김하늘'은 표시되지 않는다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "등록 화면 마지막 줄에 [등록] 버튼(입력 내용 보내기)과 [다시쓰기] 버튼(입력 내용 모두 지우기)을 만들려고 한다. 올바른 코드는?",
+    code: null, codeOpts: true,
+    opts: [
+      '<input type="submit" value="등록"> <input type="reset" value="다시쓰기">',
+      '<input type="reset" value="등록"> <input type="submit" value="다시쓰기">',
+      '<input type="submit" name="등록"> <input type="reset" name="다시쓰기">',
+      '<submit value="등록"> <reset value="다시쓰기">'
+    ],
+    ans: 0,
+    basis: "type=\"submit\"은 입력 내용을 보내는 버튼, type=\"reset\"은 입력 내용을 지우는 버튼이다. 버튼에 보이는 글자는 value로 정한다. (지금은 서버 처리가 없으므로 등록을 눌러도 실제로 저장되지는 않는다.)",
+    why: [
+      null,
+      "type이 서로 바뀌었다. [등록]을 누르면 입력 내용이 지워지고, [다시쓰기]를 누르면 내용을 보내게 된다.",
+      "버튼에 보이는 글자는 name이 아니라 value로 정한다. name만 쓰면 '등록', '다시쓰기' 대신 브라우저 기본 글자가 표시된다.",
+      "submit과 reset은 태그 이름이 아니라 input 태그의 type 값이다. submit, reset이라는 태그는 없다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "버튼이 들어 있는 칸이 위 행의 2칸 너비를 가로로 모두 차지하게 하려고 한다. ????? 자리에 들어갈 코드는?",
+    code: '<table border="1">\n    <tr>\n        <th>성명</th>\n        <td><input type="text" name="name"></td>\n    </tr>\n    <tr>\n        <td ?????>\n            <input type="submit" value="등록">\n            <input type="reset" value="다시쓰기">\n        </td>\n    </tr>\n</table>',
+    codeOpts: true,
+    opts: ['rowspan="2"', 'span="2"', 'colspan="2"', 'width="2"'],
+    ans: 2,
+    basis: "colspan은 셀을 가로로 합친다. 위 행이 th와 td, 2칸이므로 colspan=\"2\"를 쓰면 버튼 칸이 2칸 너비가 된다.",
+    why: [
+      "rowspan은 셀을 세로로 합친다. 가로로 2칸을 합치려면 colspan을 써야 한다.",
+      "span은 td에서 셀을 합치는 속성이 아니다. 셀 합치기는 colspan(가로) 또는 rowspan(세로)을 쓴다.",
+      null,
+      "width는 셀의 너비 크기를 정하는 것이지, 셀 2칸을 하나로 합치는 것이 아니다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "style.css에 아래 코드가 있다. 이 디자인을 수험번호 칸에 적용하는 올바른 코드는?",
+    code: ".td-center {\n    text-align: center;\n}",
+    codeOpts: true,
+    opts: [
+      '<td id="td-center">2026001</td>',
+      '<td class=".td-center">2026001</td>',
+      '<td style="td-center">2026001</td>',
+      '<td class="td-center">2026001</td>'
+    ],
+    ans: 3,
+    basis: "CSS에서 점(.)으로 시작하는 선택자는 class 선택자이다. HTML에서는 class 속성에 점 없이 이름만 적는다.",
+    why: [
+      "점(.)으로 시작하는 선택자는 id가 아니라 class에 적용된다. id로 쓰면 디자인이 적용되지 않는다.",
+      "점(.)은 CSS 파일에서만 붙인다. HTML의 class 값에 점을 붙이면 이름이 달라져 적용되지 않는다.",
+      "style 속성은 text-align: center; 처럼 CSS 속성을 직접 쓰는 곳이다. class 이름을 쓰는 곳이 아니다.",
+      null
+    ]
+  },
+  {
+    lv: "어려움",
+    q: "아래 코드를 실행하면 데이터가 표의 새 행으로 제대로 나타나지 않는다. 구조가 잘못된 줄과 그 이유로 옳은 것은?",
+    code: '① <table border="1">\n②     <tr><th>번호</th><th>성명</th></tr>\n③     <td>2026001</td><td>김하늘</td>\n④ </table>',
+    codeOpts: false,
+    opts: [
+      "① — table 태그에는 border를 쓸 수 없다.",
+      "② — th는 tr 안에 쓸 수 없다.",
+      "③ — td를 감싸는 tr이 없다.",
+      "④ — table은 </tr>로 끝내야 한다."
+    ],
+    ans: 2,
+    basis: "표의 한 행은 tr이고, td와 th는 반드시 tr 안에 있어야 한다. ③번 줄은 <tr>와 </tr>로 감싸야 한다.",
+    why: [
+      "border=\"1\"은 표에 테두리를 그리는 속성으로, table 태그에 쓰는 것이 맞다.",
+      "th는 제목 셀이고, td와 마찬가지로 tr 안에 써야 한다. ②번 줄은 올바르다.",
+      null,
+      "table은 <table>로 시작해서 </table>로 끝난다. </tr>는 한 행을 끝낼 때 쓴다."
+    ]
+  },
+  {
+    lv: "어려움",
+    q: "아래 CSS를 적용했을 때, 연한 노란색 배경이 칠해지는 범위로 옳은 것은?",
+    code: "section {\n    margin: 30px;\n    padding: 30px;\n    background-color: lightyellow;\n}",
+    codeOpts: false,
+    opts: [
+      "글자가 있는 부분에만 칠해지고, 30px 여백은 안쪽·바깥쪽 모두 칠해지지 않는다.",
+      "글자 부분과 안쪽 여백(padding) 30px까지 칠해지고, 바깥 여백(margin) 30px는 칠해지지 않는다.",
+      "바깥 여백(margin) 30px까지 포함해 모두 칠해진다.",
+      "글자 부분과 바깥 여백(margin) 30px까지 칠해지고, 안쪽 여백(padding)은 칠해지지 않는다."
+    ],
+    ans: 1,
+    basis: "padding은 안쪽 여백으로 section 상자에 포함되므로 배경색이 함께 칠해진다. margin은 바깥 여백으로 상자 밖의 빈 공간이라 배경색이 칠해지지 않는다.",
+    why: [
+      "padding은 상자 안쪽의 여백이라 배경색이 함께 칠해진다. 글자 부분에만 칠해지는 것이 아니다.",
+      null,
+      "margin은 상자 바깥의 빈 공간이다. section의 배경색은 margin까지 칠해지지 않는다.",
+      "안쪽과 바깥쪽이 반대이다. 배경색은 안쪽 여백(padding)까지 칠해지고, 바깥 여백(margin)은 칠해지지 않는다."
+    ]
+  }
+];
+
+var NUMS = ["①", "②", "③", "④"];
+var order = [];
+var submitted = false;
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function render() {
+  submitted = false;
+  order = shuffle(QUESTIONS.map(function (_, i) { return i; }));
+  var box = document.getElementById("quiz");
+  box.innerHTML = "";
+
+  order.forEach(function (qi, pos) {
+    var Q = QUESTIONS[qi];
+    var card = el("article", "card");
+    card.id = "card" + pos;
+
+    var head = el("div", "qhead");
+    head.appendChild(el("span", "qno", "문항 " + (pos + 1)));
+    head.appendChild(el("span", "badge " + Q.lv, Q.lv));
+    card.appendChild(head);
+
+    card.appendChild(el("p", "qtext", Q.q));
+    if (Q.code) {
+      var pre = el("pre");
+      pre.appendChild(el("code", null, Q.code));
+      card.appendChild(pre);
+    }
+
+    var fs = el("fieldset");
+    fs.appendChild(el("legend", null, "문항 " + (pos + 1) + " 보기"));
+    Q.opts.forEach(function (t, oi) {
+      var lab = el("label", "opt");
+      lab.dataset.oi = oi;
+      var inp = document.createElement("input");
+      inp.type = "radio"; inp.name = "q" + pos; inp.value = oi;
+      inp.addEventListener("change", updateCount);
+      lab.appendChild(inp);
+      lab.appendChild(el("span", "num", NUMS[oi]));
+      lab.appendChild(el("span", "txt" + (Q.codeOpts ? " code" : ""), t));
+      lab.appendChild(el("span", "mark", ""));
+      fs.appendChild(lab);
+    });
+    card.appendChild(fs);
+    card.appendChild(el("div", "fb"));
+    box.appendChild(card);
+  });
+
+  document.getElementById("result").classList.remove("show");
+  document.getElementById("bottomRetry").classList.remove("show");
+  document.getElementById("bar").style.display = "";
+  document.getElementById("warn").classList.remove("show");
+  updateCount();
+}
+
+function chosen(pos) {
+  var c = document.querySelector('input[name="q' + pos + '"]:checked');
+  return c ? Number(c.value) : null;
+}
+
+function updateCount() {
+  var n = 0;
+  for (var p = 0; p < order.length; p++) if (chosen(p) !== null) n++;
+  document.getElementById("cnt").textContent = n;
+  if (n === order.length) document.getElementById("warn").classList.remove("show");
+}
+
+function grade() {
+  if (submitted) return;
+  var missing = [];
+  for (var p = 0; p < order.length; p++) if (chosen(p) === null) missing.push(p + 1);
+  var warn = document.getElementById("warn");
+  if (missing.length) {
+    warn.textContent = "아직 풀지 않은 문항: " + missing.join(", ") + "번";
+    warn.classList.add("show");
+    document.getElementById("card" + (missing[0] - 1)).scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  submitted = true;
+  var correct = 0;
+  var lvStat = { "쉬움": [0, 0], "보통": [0, 0], "어려움": [0, 0] };
+
+  order.forEach(function (qi, pos) {
+    var Q = QUESTIONS[qi];
+    var pick = chosen(pos);
+    var ok = pick === Q.ans;
+    if (ok) correct++;
+    lvStat[Q.lv][1]++;
+    if (ok) lvStat[Q.lv][0]++;
+
+    var card = document.getElementById("card" + pos);
+    card.classList.add("locked");
+    card.querySelectorAll("input").forEach(function (i) { i.disabled = true; });
+    card.querySelectorAll(".opt").forEach(function (lab) {
+      var oi = Number(lab.dataset.oi);
+      var mark = lab.querySelector(".mark");
+      if (oi === Q.ans) { lab.classList.add("correct"); mark.textContent = "정답"; }
+      else if (oi === pick) { lab.classList.add("wrong"); mark.textContent = "내 답"; }
+    });
+
+    var fb = card.querySelector(".fb");
+    fb.innerHTML = "";
+    fb.appendChild(el("div", "verdict " + (ok ? "ok" : "ng"),
+      ok ? "정답입니다." : "오답입니다. 정답은 " + NUMS[Q.ans] + "번입니다."));
+    fb.appendChild(el("h4", null, "정답 근거"));
+    fb.appendChild(el("p", null, Q.basis));
+    fb.appendChild(el("h4", null, "오답 해설"));
+    var ul = el("ul");
+    Q.why.forEach(function (w, oi) {
+      if (w === null) return;
+      var li = el("li", oi === pick ? "mine" : "");
+      li.appendChild(document.createTextNode(NUMS[oi] + " " + w));
+      if (oi === pick) {
+        li.appendChild(document.createTextNode(" "));
+        li.appendChild(el("span", "tag-mine", "← 내가 고른 답"));
+      }
+      ul.appendChild(li);
+    });
+    fb.appendChild(ul);
+    fb.classList.add("show");
+  });
+
+  document.getElementById("score").textContent = (correct * 10) + "점";
+  document.getElementById("detail").textContent = "10문항 중 " + correct + "문항 정답";
+  var lv = document.getElementById("lvDetail");
+  lv.innerHTML = "";
+  ["쉬움", "보통", "어려움"].forEach(function (k) {
+    lv.appendChild(el("span", null, k + " " + lvStat[k][0] + "/" + lvStat[k][1]));
+  });
+  document.getElementById("result").classList.add("show");
+  document.getElementById("bottomRetry").classList.add("show");
+  document.getElementById("bar").style.display = "none";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function retry() {
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+render();
+</script>
+</body>
+</html>

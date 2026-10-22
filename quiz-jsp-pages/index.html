@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>JSP 페이지 구성 형성평가</title>
+<style>
+/* 레이아웃: 한 열 카드 흐름, 상단 학번·이름 카드, 하단 고정 제출 바 */
+:root {
+  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
+  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
+  --ok: #1d8a4a; --ok-soft: #e4f5ea; --ng: #c93a3a; --ng-soft: #fbe9e9;
+  --code-bg: #1d2628; --code-text: #e6efef; --code-key: #7fd6cf;
+  --easy: #1d8a4a; --mid: #b77300; --hard: #c93a3a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+    --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222;
+    --code-bg: #0c1112; --code-text: #e6efef; --code-key: #7fd6cf;
+    --easy: #4cc27c; --mid: #e3a73a; --hard: #ef6b6b;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+  --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222;
+  --code-bg: #0c1112; --code-text: #e6efef; --code-key: #7fd6cf;
+  --easy: #4cc27c; --mid: #e3a73a; --hard: #ef6b6b;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px;
+}
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 120px; }
+.top h1 { font-size: 22px; margin: 4px 0 2px; text-wrap: balance; }
+.top h1 code { font-family: Consolas, "D2Coding", Menlo, monospace; color: var(--accent); }
+.top p { margin: 0 0 16px; color: var(--sub); font-size: 14px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 16px; margin-bottom: 16px;
+}
+/* 학번·이름 */
+.idcard h2 { font-size: 16px; margin: 0 0 10px; }
+.idrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.idrow label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; min-width: 0; }
+.idrow input {
+  font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--text); width: 100%;
+}
+.idrow input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.idrow input.need { border-color: var(--ng); }
+.idrow input:disabled { opacity: .75; }
+.idnote { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+@media (max-width: 420px) { .idrow { grid-template-columns: 1fr; } }
+/* 문항 */
+.qhead { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.qno { font-weight: 700; font-size: 15px; }
+.badge { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.badge.쉬움 { color: var(--easy); } .badge.보통 { color: var(--mid); } .badge.어려움 { color: var(--hard); }
+.qtext { margin: 0 0 12px; font-weight: 600; }
+pre {
+  background: var(--code-bg); color: var(--code-text); border-radius: 8px;
+  padding: 12px 14px; margin: 0 0 14px; overflow-x: auto;
+  font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 13.5px; line-height: 1.55;
+}
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+legend { position: absolute; left: -9999px; }
+.opt {
+  display: flex; gap: 10px; align-items: flex-start;
+  border: 1.5px solid var(--line); border-radius: 8px;
+  padding: 11px 12px; margin-bottom: 8px; cursor: pointer; min-height: 46px;
+}
+.opt input { margin: 4px 0 0; width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--accent); }
+.opt .num { font-weight: 700; flex-shrink: 0; }
+.opt .txt { word-break: break-all; min-width: 0; white-space: pre-wrap; }
+.opt .txt.code { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 14px; }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.opt.correct { border-color: var(--ok); background: var(--ok-soft); }
+.opt.wrong { border-color: var(--ng); background: var(--ng-soft); }
+.locked .opt { cursor: default; }
+.mark { font-size: 13px; font-weight: 700; margin-left: auto; flex-shrink: 0; padding-left: 6px; }
+.correct .mark { color: var(--ok); } .wrong .mark { color: var(--ng); }
+.fb { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; font-size: 15px; }
+.verdict { font-weight: 700; margin-bottom: 6px; }
+.verdict.ok { color: var(--ok); } .verdict.ng { color: var(--ng); }
+.fb h4 { margin: 10px 0 4px; font-size: 14px; color: var(--sub); }
+.fb p { margin: 0; }
+.fb ul { margin: 4px 0 0; padding-left: 18px; }
+.fb li { margin-bottom: 6px; }
+.fb li.mine { font-weight: 600; }
+.tag-mine { font-size: 12px; color: var(--ng); font-weight: 700; }
+/* 결과 */
+.result { border: 2px solid var(--accent); }
+.result .rtitle { font-size: 13px; letter-spacing: .04em; color: var(--sub); margin: 0 0 6px; text-align: center; }
+.who { text-align: center; font-size: 20px; font-weight: 800; margin: 0; word-break: break-all; }
+.who span { color: var(--accent); }
+.score { text-align: center; font-size: 48px; font-weight: 800; color: var(--accent); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.rdetail { text-align: center; color: var(--sub); margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.lv { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; font-size: 14px; margin-bottom: 12px; font-variant-numeric: tabular-nums; }
+.ox { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 0 0 12px; }
+.ox div {
+  border-radius: 6px; text-align: center; font-size: 12px; padding: 3px 0; line-height: 1.3;
+  font-variant-numeric: tabular-nums; border: 1px solid var(--line);
+}
+.ox div b { display: block; font-size: 14px; }
+.ox .o { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.ox .x { background: var(--ng-soft); color: var(--ng); border-color: var(--ng); }
+.meta { text-align: center; font-size: 13px; color: var(--sub); margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+.center { text-align: center; }
+.btn {
+  appearance: none; border: 0; border-radius: 8px; padding: 13px 22px;
+  font-size: 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent);
+}
+.btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+  border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.bar .in { max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar .prog { flex: 1; font-size: 14px; color: var(--sub); min-width: 0; }
+.bar .prog b { color: var(--text); }
+.warn { color: var(--ng); font-size: 13px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" style="display:inline-block;margin:0 0 8px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none">← 수업 자료 목록</a>
+  <header class="top">
+    <h1>JSP 페이지 구성 형성평가</h1>
+    <p>응용프로그래밍 화면구현 · header·footer·주요 페이지와 style.css · 4지선다 20문항 (쉬움 10 · 보통 8 · 어려움 2)</p>
+  </header>
+
+  <section class="card result" id="result" hidden aria-live="polite">
+    <p class="rtitle">형성평가 결과</p>
+    <p class="who"><span id="rId"></span> <span id="rName"></span></p>
+    <div class="score" id="score"></div>
+    <p class="rdetail" id="detail"></p>
+    <div class="lv" id="lvDetail"></div>
+    <div class="ox" id="ox"></div>
+    <p class="meta" id="meta"></p>
+    <div class="center"><button class="btn" type="button" id="retryTop">다시 풀기</button></div>
+  </section>
+
+  <section class="card idcard" id="idcard">
+    <h2>학번과 이름을 입력하세요</h2>
+    <div class="idrow">
+      <label for="sid">학번
+        <input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10">
+      </label>
+      <label for="sname">이름
+        <input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20">
+      </label>
+    </div>
+    <p class="idnote">제출하면 결과 화면에 학번과 이름이 함께 표시됩니다. 결과 화면을 캡처해서 제출하세요.</p>
+  </section>
+
+  <div id="quiz"></div>
+
+  <div class="center" id="bottomRetry" hidden>
+    <button class="btn" type="button" id="retryBottom">다시 풀기</button>
+  </div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="prog">
+      <div>푼 문항 <b id="cnt">0</b> / 20</div>
+      <div class="warn" id="warn" hidden></div>
+    </div>
+    <button class="btn" type="button" id="submitBtn">제출하기</button>
+  </div>
+</div>
+
+<script>
+var QUESTIONS = [
+  /* ───────── 쉬움 10 ───────── */
+  {
+    lv: "쉬움",
+    q: "모든 페이지의 맨 아래에 공통 파일 footer.jsp를 불러오는 코드로 올바른 것은?",
+    codeOpts: true,
+    opts: [
+      '<jsp:include page="footer.jsp"></jsp:include>',
+      '<jsp:include file="footer.jsp"></jsp:include>',
+      '<include page="footer.jsp"></include>',
+      '<jsp:include page="footer.jsp"></include>'
+    ],
+    ans: 0,
+    basis: "공통 파일은 jsp:include 태그로 불러온다. page 속성에 파일 이름을 쓰고, 여는 태그와 닫는 태그 모두 jsp:include로 쓴다.",
+    why: [
+      null,
+      "jsp:include는 file이 아니라 page 속성에 파일 이름을 적는다.",
+      "태그 이름 앞에 jsp: 가 빠졌다. 공통 파일을 불러오는 태그는 jsp:include이다.",
+      "닫는 태그가 </include>로 잘못 쓰였다. 여는 태그와 똑같이 </jsp:include>로 닫아야 한다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "프로그램 제목과 메뉴(nav)를 넣어 두고, 모든 페이지가 맨 위에서 함께 불러오는 공통 파일은?",
+    codeOpts: true,
+    opts: ["footer.jsp", "index.jsp", "header.jsp", "style.css"],
+    ans: 2,
+    basis: "header.jsp에는 프로그램 제목(header)과 메뉴(nav)를 넣는다. 각 페이지는 맨 위에서 jsp:include로 header.jsp를 불러온다.",
+    why: [
+      "footer.jsp는 페이지 맨 아래에 들어가는 저작권과 학생 정보 파일이다.",
+      "index.jsp는 프로그램 소개를 보여 주는 홈 화면이다. 다른 페이지가 불러오는 공통 파일이 아니다.",
+      null,
+      "style.css는 화면 디자인 파일이다. 제목과 메뉴 같은 HTML 내용을 담지 않는다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "nav 메뉴에서 '접수목록조회/수정'을 클릭하면 applylist.jsp로 이동하게 하려고 한다. 올바른 코드는?",
+    codeOpts: true,
+    opts: [
+      '<a src="applylist.jsp">접수목록조회/수정</a>',
+      '<a href="applylist.jsp">접수목록조회/수정</a>',
+      '<a href="applylist">접수목록조회/수정</a>',
+      '<link href="applylist.jsp">접수목록조회/수정</link>'
+    ],
+    ans: 1,
+    basis: "페이지 이동은 a 태그의 href 속성에 이동할 파일 이름을 .jsp까지 정확히 적는다.",
+    why: [
+      "a 태그는 이동할 주소를 src가 아니라 href에 적는다.",
+      null,
+      "파일 이름에 .jsp가 빠졌다. 실제 파일 이름과 똑같이 applylist.jsp라고 써야 이동한다.",
+      "link 태그는 CSS 파일을 연결할 때 쓴다. 클릭해서 이동하는 메뉴는 a 태그로 만든다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "footer.jsp에서 아래 저작권 문구를 감싸는 태그로 알맞은 것은?",
+    code: "<?????>\n    Copyrightⓒ2026 10315 홍길동 All rights reserved.\n</?????>",
+    codeOpts: true,
+    opts: ["header", "nav", "section", "footer"],
+    ans: 3,
+    basis: "footer는 페이지의 맨 아래 영역을 나타내는 태그이다. 저작권과 학생 정보를 넣는다.",
+    why: [
+      "header는 페이지 맨 위의 제목 영역이다.",
+      "nav는 메뉴 영역이다.",
+      "section은 각 페이지의 본문 영역이다.",
+      null
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "apply.jsp의 본문(section) 맨 위에 화면 제목 '원서접수'를 표시하는 코드는?",
+    codeOpts: true,
+    opts: [
+      "<h2>원서접수</h2>",
+      "<title>원서접수</title>",
+      "<h2 원서접수>",
+      "<head>원서접수</head>"
+    ],
+    ans: 0,
+    basis: "section 안의 화면 제목은 h2 태그로 쓴다. 여는 태그와 닫는 태그 사이에 제목 글자를 넣는다.",
+    why: [
+      null,
+      "title은 head 안에 쓰는 태그로, 브라우저 탭에 표시되는 제목이다. 본문 화면에는 나타나지 않는다.",
+      "제목 글자는 태그 안이 아니라 <h2>와 </h2> 사이에 써야 한다.",
+      "head는 문서 정보(meta, title)를 넣는 영역이다. 화면 본문에 글자를 표시하지 않는다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "목록조회 표에서 '수험번호', '성명' 같은 제목 칸을 만드는 태그는?",
+    codeOpts: true,
+    opts: ["td", "th", "tr", "table"],
+    ans: 1,
+    basis: "th는 표의 제목 셀이다. 글자가 굵고 가운데로 표시된다.",
+    why: [
+      "td는 일반 데이터 셀이다. 2026001, 김하늘 같은 데이터를 넣는다.",
+      null,
+      "tr은 표의 한 행이다. 칸 하나를 만드는 태그가 아니다.",
+      "table은 표 전체를 감싸는 태그이다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "목록조회 표에 접수자 한 명(한 줄)을 더 추가하려고 한다. 무엇을 추가해야 하는가?",
+    codeOpts: false,
+    opts: [
+      "<td> 하나만 추가한다.",
+      "<th> 하나를 추가한다.",
+      "새 <table>을 하나 더 만든다.",
+      "<tr>과 </tr> 사이에 데이터 칸(td)들을 넣은 한 행을 추가한다."
+    ],
+    ans: 3,
+    basis: "tr은 표의 한 행이다. 한 명의 데이터는 한 행이므로 tr을 추가하고, 그 안에 항목 수만큼 td를 넣는다.",
+    why: [
+      "td 하나만 추가하면 기존 행의 오른쪽에 칸 하나가 붙을 뿐, 새 줄이 생기지 않는다.",
+      "th는 제목 셀이다. 데이터 한 줄을 추가하는 태그가 아니다.",
+      "새 table을 만들면 표가 따로 하나 더 생긴다. 같은 표에 줄을 추가하려면 tr을 쓴다.",
+      null
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "apply.jsp에서 성명을 입력하는 칸을 만드는 코드로 올바른 것은?",
+    codeOpts: true,
+    opts: [
+      '<input type="name">',
+      '<text name="name">',
+      '<input type="text" name="name">',
+      '<input name="text">'
+    ],
+    ans: 2,
+    basis: '글자 입력칸은 input 태그에 type="text"를 쓴다. name은 입력칸을 구분하는 이름이다.',
+    why: [
+      'type에는 입력칸 종류(text, submit, reset)를 쓴다. "name"이라는 type은 없다.',
+      "text라는 태그는 없다. 입력칸은 input 태그로 만든다.",
+      null,
+      "type과 name이 뒤섞였다. 입력칸 종류는 type에, 구분 이름은 name에 써야 한다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "[style.css] header가 스크롤과 상관없이 항상 화면 맨 위에 붙어 있게 하는 코드는?",
+    codeOpts: true,
+    opts: [
+      "header { position: fixed; top: 0; }",
+      "header { position: fixed; bottom: 0; }",
+      "header { top: 0; }",
+      "header { position: top; }"
+    ],
+    ans: 0,
+    basis: "position: fixed; 로 화면에 고정하고, top: 0; 으로 화면 맨 위에 놓는다.",
+    why: [
+      null,
+      "bottom: 0; 은 화면 맨 아래에 고정한다. footer에 쓰는 코드이다.",
+      "position: fixed; 가 없으면 top 값이 동작하지 않는다.",
+      "position에는 top이라는 값이 없다. 위치는 top 속성으로 따로 정한다."
+    ]
+  },
+  {
+    lv: "쉬움",
+    q: "JSP 페이지의 한글이 깨져 보인다. 가장 먼저 확인할 부분은?",
+    codeOpts: false,
+    opts: [
+      "style.css의 background-color 값",
+      "table의 border 값",
+      'JSP 맨 위 page 줄의 charset=UTF-8, pageEncoding="UTF-8"과 meta charset="UTF-8"',
+      "a 태그의 href 파일 이름"
+    ],
+    ans: 2,
+    basis: "한글 깨짐은 문자 인코딩 문제이다. JSP 맨 위 page 줄과 head의 meta에 UTF-8이 정확히 적혀 있는지 확인한다.",
+    why: [
+      "background-color는 배경색이다. 글자 인코딩과 관계없다.",
+      "border는 표 테두리이다. 한글 깨짐과 관계없다.",
+      null,
+      "href는 페이지 이동 주소이다. 파일 이름이 틀리면 이동이 안 될 뿐, 한글이 깨지지는 않는다."
+    ]
+  },
+
+  /* ───────── 보통 8 ───────── */
+  {
+    lv: "보통",
+    q: "apply.jsp 등록 화면의 마지막 줄이다. 표는 2칸(th, td)짜리이다. [등록]과 [다시쓰기] 버튼이 2칸 너비 전체를 차지하도록 한 올바른 코드는?",
+    codeOpts: true,
+    opts: [
+      '<td rowspan="2">\n  <input type="submit" value="등록">\n  <input type="reset" value="다시쓰기">\n</td>',
+      '<td colspan="2">\n  <input type="reset" value="등록">\n  <input type="submit" value="다시쓰기">\n</td>',
+      '<td colspan="2">\n  <input type="submit" value="등록">\n  <input type="reset" value="다시쓰기">\n</td>',
+      '<td colspan="2">\n  <input type="submit" name="등록">\n  <input type="reset" name="다시쓰기">\n</td>'
+    ],
+    ans: 2,
+    basis: '가로 2칸을 합치는 것은 colspan="2"이다. 보내기 버튼은 type="submit", 지우기 버튼은 type="reset"이고, 버튼 글자는 value로 정한다.',
+    why: [
+      "rowspan은 세로로 칸을 합친다. 가로 2칸을 합치려면 colspan을 쓴다.",
+      "submit과 reset이 서로 바뀌었다. [등록]을 누르면 입력 내용이 지워진다.",
+      null,
+      "버튼에 보이는 글자는 name이 아니라 value로 정한다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "목록조회에서 2026004(최가람)를 클릭해 update.jsp로 이동했다. 수정 화면의 시험장소 입력칸 코드로 올바른 것은?",
+    code: "수험번호  성명    자격종목            시험장소\n2026001   김하늘  정보처리산업기사    제1시험실\n2026004   최가람  웹디자인개발기능사  제3시험실",
+    codeOpts: true,
+    opts: [
+      '<input type="text" name="place" value="제1시험실">',
+      '<input type="text" name="제3시험실">',
+      '<input type="text" name="place">제3시험실',
+      '<input type="text" name="place" value="제3시험실">'
+    ],
+    ans: 3,
+    basis: "수정 화면은 클릭한 사람의 기존 데이터를 value에 넣어 미리 보여 준다. 최가람의 시험장소는 제3시험실이다.",
+    why: [
+      "제1시험실은 김하늘(2026001)의 시험장소이다. 수정 화면의 초기값은 목록에서 클릭한 최가람의 데이터와 같아야 한다.",
+      "name은 입력칸을 구분하는 이름일 뿐 화면에 보이지 않는다. 입력칸이 비어 있게 된다.",
+      "input은 닫는 태그가 없다. 뒤에 쓴 '제3시험실'은 입력칸 바깥에 일반 글자로 나타난다.",
+      null
+    ]
+  },
+  {
+    lv: "보통",
+    q: "applylist.jsp에서 수험번호를 가운데 정렬(td-center)하고, 클릭하면 update.jsp로 이동하게 하려고 한다. 올바른 코드는?",
+    codeOpts: true,
+    opts: [
+      '<td class="td-center"><a href="update.jsp">2026001</a></td>',
+      '<a href="update.jsp"><td class="td-center">2026001</td></a>',
+      '<td class="td-center" href="update.jsp">2026001</td>',
+      '<td class=".td-center"><a href="update.jsp">2026001</a></td>'
+    ],
+    ans: 0,
+    basis: "class는 td에 쓰고, 이동할 링크(a 태그)는 td 안에 넣는다. HTML의 class 값에는 점(.)을 붙이지 않는다.",
+    why: [
+      null,
+      "a 태그가 td 바깥에 있다. tr 안에는 td나 th만 바로 올 수 있으므로 표 구조가 깨진다.",
+      "td에 href를 써도 클릭해서 이동하지 않는다. td 안에 a 태그를 넣어야 한다.",
+      "점(.)은 CSS 파일에서만 붙인다. HTML에 점을 붙이면 이름이 달라져 가운데 정렬이 적용되지 않는다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "apply.jsp의 section 안쪽 구조로 올바른 것은?",
+    codeOpts: true,
+    opts: [
+      "<section>\n  <form>\n    <h2>원서접수</h2>\n  </form>\n  <table border=\"1\"> ... </table>\n</section>",
+      "<section>\n  <table border=\"1\">\n    <form> ... </form>\n  </table>\n  <h2>원서접수</h2>\n</section>",
+      "<section>\n  <h2>원서접수</h2>\n  <form>\n    <table border=\"1\"> ... </table>\n  </form>\n</section>",
+      "<h2>원서접수</h2>\n<form>\n  <section>\n    <table border=\"1\"> ... </table>\n  </section>\n</form>"
+    ],
+    ans: 2,
+    basis: "section(본문) 안에 먼저 h2(화면 제목)를 쓰고, 그 아래에 form이 입력칸이 들어 있는 table을 감싼다.",
+    why: [
+      "form이 입력칸이 있는 table이 아니라 제목만 감싸고 있다. form은 입력칸과 버튼을 묶어야 한다.",
+      "form이 table 안에 들어가 있고, 제목이 표 아래에 있다. form이 table을 감싸야 하고 제목은 맨 위에 와야 한다.",
+      null,
+      "h2와 form이 section 바깥에 있다. 화면 제목과 입력 양식은 모두 본문인 section 안에 들어가야 한다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "아래 표에서 2026001과 2026003의 시험장소가 둘 다 '제1시험실'이다. '제1시험실' 칸 하나가 두 행을 세로로 차지하게 하려면 ????? 에 무엇을 써야 하는가?",
+    code: "<tr>\n    <td>2026001</td>\n    <td ?????>제1시험실</td>\n</tr>\n<tr>\n    <td>2026003</td>\n</tr>",
+    codeOpts: true,
+    opts: ['colspan="2"', 'rowspan="2"', 'rowspan="1"', 'span="2"'],
+    ans: 1,
+    basis: "rowspan은 칸을 세로로 합친다. 두 행을 차지해야 하므로 rowspan=\"2\"이다. 그래서 아래 행에는 시험장소 td를 쓰지 않는다.",
+    why: [
+      "colspan은 가로로 합친다. 세로로 두 행을 차지하게 하려면 rowspan을 쓴다.",
+      null,
+      "rowspan=\"1\"은 한 행만 차지하므로 합쳐지지 않는다.",
+      "span은 td에서 칸을 합치는 속성이 아니다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "[style.css] nav 메뉴의 글자를 흰색으로 하고 밑줄을 없애려고 한다. 올바른 코드는?",
+    codeOpts: true,
+    opts: [
+      "a {\n    color: white;\n    text-decoration: underline;\n}",
+      "a {\n    background-color: white;\n    text-decoration: none;\n}",
+      "a {\n    color: white, text-decoration: none;\n}",
+      "a {\n    color: white;\n    text-decoration: none;\n}"
+    ],
+    ans: 3,
+    basis: "글자색은 color, 밑줄 없애기는 text-decoration: none이다. 속성마다 끝에 세미콜론(;)을 쓴다.",
+    why: [
+      "underline은 밑줄을 긋는다. 밑줄을 없애려면 none을 쓴다.",
+      "background-color는 배경색이다. 글자 뒤가 흰색으로 칠해지고 글자색은 바뀌지 않는다.",
+      "속성과 속성 사이는 쉼표(,)가 아니라 세미콜론(;)으로 구분한다. 쉼표로 쓰면 적용되지 않는다.",
+      null
+    ]
+  },
+  {
+    lv: "보통",
+    q: "다른 페이지에는 footer가 잘 나오는데 index.jsp에서만 footer가 보이지 않는다. 원인은?",
+    code: "<body>\n\n<jsp:include page=\"header.jsp\"></jsp:include>\n\n<section>\n    <h2>홈</h2>\n    자격증 원서접수 관리 프로그램입니다.\n</section>\n\n</body>",
+    codeOpts: false,
+    opts: [
+      "footer.jsp 파일 안의 저작권 문구가 틀렸기 때문이다.",
+      "index.jsp에 footer.jsp를 불러오는 jsp:include 줄이 없기 때문이다.",
+      "header.jsp를 불러오면 footer.jsp는 불러올 수 없기 때문이다.",
+      "section 안에 h2가 있기 때문이다."
+    ],
+    ans: 1,
+    basis: "공통 파일은 각 페이지가 직접 불러와야 나타난다. </section> 아래, </body> 위에 <jsp:include page=\"footer.jsp\"></jsp:include>를 추가해야 한다.",
+    why: [
+      "다른 페이지에서는 footer가 잘 나오므로 footer.jsp 파일 자체는 문제가 없다.",
+      null,
+      "한 페이지에서 header.jsp와 footer.jsp를 둘 다 불러올 수 있다. 다른 페이지들도 그렇게 한다.",
+      "section 안에 h2를 쓰는 것은 올바른 구조이다. footer와 관계없다."
+    ]
+  },
+  {
+    lv: "보통",
+    q: "메뉴의 '접수목록조회/수정'을 클릭하면 '404 찾을 수 없음' 오류가 난다. 프로젝트에 있는 파일 이름은 applylist.jsp이다. 원인은?",
+    code: '<a href="aplylist.jsp">접수목록조회/수정</a>',
+    codeOpts: false,
+    opts: [
+      "a 태그는 nav 안에서 쓸 수 없기 때문이다.",
+      "style.css가 연결되지 않았기 때문이다.",
+      "메뉴 글자에 슬래시(/)가 들어 있기 때문이다.",
+      "href의 파일 이름(aplylist.jsp)이 실제 파일 이름(applylist.jsp)과 철자가 다르기 때문이다."
+    ],
+    ans: 3,
+    basis: "404는 '그 파일을 찾을 수 없다'는 뜻이다. href의 파일 이름은 실제 파일 이름과 한 글자도 다르지 않아야 한다. aplylist에는 p가 하나 빠졌다.",
+    why: [
+      "nav 안의 메뉴는 a 태그로 만드는 것이 맞다.",
+      "CSS가 연결되지 않으면 디자인만 적용되지 않는다. 페이지 이동 오류(404)와 관계없다.",
+      "a 태그 사이의 글자는 화면에 보이는 글자일 뿐이다. 슬래시가 있어도 이동에는 문제가 없다.",
+      null
+    ]
+  },
+
+  /* ───────── 어려움 2 ───────── */
+  {
+    lv: "어려움",
+    q: "아래 apply.jsp를 실행하면 표 오른쪽에 빈 칸이 하나 더 생겨 표 모양이 어긋난다. 원인이 되는 줄과 이유로 옳은 것은?",
+    code: "① <form>\n   <table border=\"1\">\n② <tr><th>수험번호</th><td><input type=\"text\" name=\"no\"></td></tr>\n③ <tr><th>성명</th><td><input type=\"text\" name=\"name\"></td></tr>\n④ <tr><td colspan=\"3\">\n       <input type=\"submit\" value=\"등록\">\n       <input type=\"reset\" value=\"다시쓰기\">\n   </td></tr>\n   </table>\n   </form>",
+    codeOpts: false,
+    opts: [
+      "① — form 안에 table을 넣을 수 없다.",
+      "② — th와 td를 한 줄(tr)에 함께 쓸 수 없다.",
+      "③ — name 값이 영어이면 안 된다.",
+      "④ — 다른 행은 2칸(th, td)인데 colspan=\"3\"으로 3칸을 합쳐서 표가 3칸짜리가 되었다."
+    ],
+    ans: 3,
+    basis: "colspan 값은 다른 행의 칸 수와 맞아야 한다. 위 행들은 th 1칸 + td 1칸 = 2칸이므로 colspan=\"2\"가 맞다. 3으로 쓰면 표가 3칸이 되어 위 행들 오른쪽에 빈 칸이 생긴다.",
+    why: [
+      "form이 table을 감싸는 것은 등록 화면의 기본 구조이다.",
+      "한 행(tr) 안에 제목 칸 th와 데이터 칸 td를 함께 쓰는 것은 등록 화면에서 자주 쓰는 올바른 구조이다.",
+      "name은 입력칸을 구분하는 이름이다. 보통 영어로 쓰며 화면 모양과 관계없다.",
+      null
+    ]
+  },
+  {
+    lv: "어려움",
+    q: "모든 페이지(index, apply, applylist, status, update)는 맨 위에서 header.jsp를, 맨 아래에서 footer.jsp를 jsp:include로 불러온다. style.css는 header.jsp에서 연결한다. 옳은 설명은?",
+    codeOpts: false,
+    opts: [
+      "메뉴를 하나 추가하려면 다섯 페이지 모두에 nav 코드를 직접 고쳐 넣어야 한다.",
+      "header.jsp의 nav 메뉴만 고치면, header.jsp를 불러오는 모든 페이지의 메뉴가 함께 바뀐다.",
+      "style.css를 header.jsp에서 연결했으므로 CSS는 header 부분에만 적용되고 section과 footer에는 적용되지 않는다.",
+      "update.jsp에서 [수정] 버튼을 누르면 applylist.jsp의 목록 데이터가 자동으로 바뀐다."
+    ],
+    ans: 1,
+    basis: "jsp:include는 공통 파일의 내용을 각 페이지에 그대로 끼워 넣는다. 그래서 header.jsp 한 파일만 고치면 그 파일을 불러오는 모든 페이지에 반영된다.",
+    why: [
+      "메뉴는 header.jsp 한 곳에만 있다. 각 페이지는 그 파일을 불러오기만 하므로 다섯 페이지를 따로 고칠 필요가 없다.",
+      null,
+      "header.jsp의 내용이 각 페이지에 끼워 들어가므로 link 태그도 페이지 전체에 들어간다. 그래서 style.css는 header, section, footer 모두에 적용된다.",
+      "지금은 서버 처리와 데이터베이스가 없는 화면구현 실습이다. 버튼을 눌러도 데이터가 저장되거나 목록이 바뀌지 않는다."
+    ]
+  }
+];
+
+var NUMS = ["①", "②", "③", "④"];
+var order = [];   // 화면 순서 → 원래 문항 번호
+var perms = [];   // 문항별 보기 순서 (화면 위치 → 원래 보기 번호)
+var submitted = false;
+var attempt = 0;
+
+function $(id) { return document.getElementById(id); }
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function pad(n) { return (n < 10 ? "0" : "") + n; }
+function scrollTop() {
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+}
+
+function render() {
+  submitted = false;
+  attempt++;
+  order = shuffle(QUESTIONS.map(function (_, i) { return i; }));
+  perms = [];
+  var box = $("quiz");
+  box.innerHTML = "";
+
+  order.forEach(function (qi, pos) {
+    var Q = QUESTIONS[qi];
+    var perm = shuffle([0, 1, 2, 3]);
+    perms.push(perm);
+
+    var card = el("article", "card");
+    card.id = "card" + pos;
+    var head = el("div", "qhead");
+    head.appendChild(el("span", "qno", "문항 " + (pos + 1)));
+    head.appendChild(el("span", "badge " + Q.lv, Q.lv));
+    card.appendChild(head);
+    card.appendChild(el("p", "qtext", Q.q));
+    if (Q.code) {
+      var pre = el("pre");
+      pre.appendChild(el("code", null, Q.code));
+      card.appendChild(pre);
+    }
+
+    var fs = el("fieldset");
+    fs.appendChild(el("legend", null, "문항 " + (pos + 1) + " 보기"));
+    perm.forEach(function (oi, disp) {
+      var lab = el("label", "opt");
+      lab.dataset.oi = oi;
+      var inp = document.createElement("input");
+      inp.type = "radio"; inp.name = "q" + pos; inp.value = oi;
+      inp.id = "q" + pos + "o" + disp;
+      inp.addEventListener("change", updateCount);
+      lab.appendChild(inp);
+      lab.appendChild(el("span", "num", NUMS[disp]));
+      lab.appendChild(el("span", "txt" + (Q.codeOpts ? " code" : ""), Q.opts[oi]));
+      lab.appendChild(el("span", "mark", ""));
+      fs.appendChild(lab);
+    });
+    card.appendChild(fs);
+    var fb = el("div", "fb");
+    fb.hidden = true;
+    card.appendChild(fb);
+    box.appendChild(card);
+  });
+
+  $("result").hidden = true;
+  $("bottomRetry").hidden = true;
+  $("bar").hidden = false;
+  $("warn").hidden = true;
+  $("sid").disabled = false;
+  $("sname").disabled = false;
+  updateCount();
+}
+
+function chosen(pos) {
+  var c = document.querySelector('input[name="q' + pos + '"]:checked');
+  return c ? Number(c.value) : null;
+}
+
+function updateCount() {
+  var n = 0;
+  for (var p = 0; p < order.length; p++) if (chosen(p) !== null) n++;
+  $("cnt").textContent = n;
+  if (n === order.length && $("sid").value.trim() && $("sname").value.trim()) $("warn").hidden = true;
+}
+
+function showWarn(msg) {
+  var w = $("warn");
+  w.textContent = msg;
+  w.hidden = false;
+}
+
+function grade() {
+  if (submitted) return;
+  var sid = $("sid").value.trim();
+  var sname = $("sname").value.trim();
+  $("sid").classList.toggle("need", !sid);
+  $("sname").classList.toggle("need", !sname);
+  if (!sid || !sname) {
+    showWarn("학번과 이름을 먼저 입력하세요.");
+    $("idcard").scrollIntoView({ block: "start" });
+    (!sid ? $("sid") : $("sname")).focus();
+    return;
+  }
+  var missing = [];
+  for (var p = 0; p < order.length; p++) if (chosen(p) === null) missing.push(p + 1);
+  if (missing.length) {
+    showWarn("아직 풀지 않은 문항: " + missing.join(", ") + "번");
+    $("card" + (missing[0] - 1)).scrollIntoView({ block: "start" });
+    return;
+  }
+
+  submitted = true;
+  var correct = 0;
+  var lvStat = { "쉬움": [0, 0], "보통": [0, 0], "어려움": [0, 0] };
+  var ox = $("ox");
+  ox.innerHTML = "";
+
+  order.forEach(function (qi, pos) {
+    var Q = QUESTIONS[qi];
+    var perm = perms[pos];
+    var pick = chosen(pos);
+    var ok = pick === Q.ans;
+    if (ok) correct++;
+    lvStat[Q.lv][1]++;
+    if (ok) lvStat[Q.lv][0]++;
+
+    var cell = el("div", ok ? "o" : "x");
+    cell.appendChild(document.createTextNode(String(pos + 1)));
+    cell.appendChild(el("b", null, ok ? "O" : "X"));
+    ox.appendChild(cell);
+
+    var card = $("card" + pos);
+    card.classList.add("locked");
+    card.querySelectorAll("input").forEach(function (i) { i.disabled = true; });
+    card.querySelectorAll(".opt").forEach(function (lab) {
+      var oi = Number(lab.dataset.oi);
+      var mark = lab.querySelector(".mark");
+      if (oi === Q.ans) { lab.classList.add("correct"); mark.textContent = "정답"; }
+      else if (oi === pick) { lab.classList.add("wrong"); mark.textContent = "내 답"; }
+    });
+
+    var ansDisp = perm.indexOf(Q.ans);
+    var fb = card.querySelector(".fb");
+    fb.innerHTML = "";
+    fb.appendChild(el("div", "verdict " + (ok ? "ok" : "ng"),
+      ok ? "정답입니다." : "오답입니다. 정답은 " + NUMS[ansDisp] + "번입니다."));
+    fb.appendChild(el("h4", null, "정답 근거"));
+    fb.appendChild(el("p", null, Q.basis));
+    fb.appendChild(el("h4", null, "오답 해설"));
+    var ul = el("ul");
+    perm.forEach(function (oi, disp) {
+      var w = Q.why[oi];
+      if (w === null) return;
+      var li = el("li", oi === pick ? "mine" : "");
+      li.appendChild(document.createTextNode(NUMS[disp] + " " + w));
+      if (oi === pick) {
+        li.appendChild(document.createTextNode(" "));
+        li.appendChild(el("span", "tag-mine", "← 내가 고른 답"));
+      }
+      ul.appendChild(li);
+    });
+    fb.appendChild(ul);
+    fb.hidden = false;
+  });
+
+  var now = new Date();
+  $("rId").textContent = sid;
+  $("rName").textContent = sname;
+  $("score").textContent = (correct * 5) + "점";
+  $("detail").textContent = "20문항 중 " + correct + "문항 정답 (문항당 5점)";
+  var lv = $("lvDetail");
+  lv.innerHTML = "";
+  ["쉬움", "보통", "어려움"].forEach(function (k) {
+    lv.appendChild(el("span", null, k + " " + lvStat[k][0] + "/" + lvStat[k][1]));
+  });
+  $("meta").textContent = "제출 " + now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate()) +
+    " " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + " · " + attempt + "번째 응시";
+
+  $("sid").disabled = true;
+  $("sname").disabled = true;
+  $("result").hidden = false;
+  $("bottomRetry").hidden = false;
+  $("bar").hidden = true;
+  scrollTop();
+}
+
+function retry() {
+  render();
+  scrollTop();
+}
+
+$("submitBtn").addEventListener("click", grade);
+$("retryTop").addEventListener("click", retry);
+$("retryBottom").addEventListener("click", retry);
+$("sid").addEventListener("input", function () { this.classList.remove("need"); updateCount(); });
+$("sname").addEventListener("input", function () { this.classList.remove("need"); updateCount(); });
+
+render();
+</script>
+</body>
+</html>

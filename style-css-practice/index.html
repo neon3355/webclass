@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>style.css 직접 입력 연습</title>
+<style>
+/* 레이아웃: 한 열 흐름 — 학번·이름 → 단계 탭 → 단계별 작업 영역(결과·피드백 포함), 하단 고정 제출 바 */
+:root {
+  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
+  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
+  --ok: #1d8a4a; --ok-soft: #e4f5ea; --ng: #c93a3a; --ng-soft: #fbe9e9; --warn: #9a6400;
+  --code-bg: #1d2628; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf;
+  --code-ok: #7ee2a0; --code-ng: #ff9a9a; --code-line: #3a4a4d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+    --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --warn: #e3a73a;
+    --code-bg: #0c1112; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf;
+    --code-ok: #7ee2a0; --code-ng: #ff9a9a; --code-line: #2a3739;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+  --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --warn: #e3a73a;
+  --code-bg: #0c1112; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf;
+  --code-ok: #7ee2a0; --code-ng: #ff9a9a; --code-line: #2a3739;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px;
+}
+.mono { font-family: Consolas, "D2Coding", Menlo, monospace; }
+.wrap { max-width: 820px; margin: 0 auto; padding: 20px 16px 120px; }
+.top h1 { font-size: 22px; margin: 4px 0 2px; text-wrap: balance; }
+.top h1 code { font-family: Consolas, "D2Coding", Menlo, monospace; color: var(--accent); }
+.top p { margin: 0 0 16px; color: var(--sub); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 16px; margin-bottom: 16px; }
+.card h2 { font-size: 16px; margin: 0 0 10px; }
+/* 학번·이름 */
+.idrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.idrow label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; min-width: 0; }
+.idrow input {
+  font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--text); width: 100%;
+}
+.idrow input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.idrow input.need { border-color: var(--ng); }
+.note { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+@media (max-width: 420px) { .idrow { grid-template-columns: 1fr; } }
+/* 단계 탭 */
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.tab {
+  appearance: none; font: inherit; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; min-width: 0;
+}
+.tab b { display: block; font-size: 12px; color: var(--sub); letter-spacing: .04em; }
+.tab span { font-weight: 700; font-size: 15px; }
+.tab[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.tab[aria-selected="true"] b { color: var(--accent); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) { .tabs { grid-template-columns: 1fr 1fr; } }
+.tab[aria-disabled="true"] { opacity: .55; border-style: dashed; }
+.tab .st { display: block; font-size: 12px; font-weight: 600; color: var(--sub); margin-top: 2px; }
+.tab.done .st { color: var(--ok); }
+.lockmsg {
+  margin: 0 0 16px; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 600;
+  background: var(--ng-soft); color: var(--ng); border: 1px solid var(--ng);
+}
+/* 안내 */
+.howto { margin: 0 0 12px; }
+.howto li { margin-bottom: 4px; }
+.cond { background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; margin: 0 0 14px; }
+.cond h3 { margin: 0 0 6px; font-size: 15px; }
+.cond ul { margin: 0; padding-left: 18px; }
+.cond li { margin-bottom: 3px; }
+.cond b { color: var(--accent); }
+/* 코드 영역 */
+.codebox {
+  background: var(--code-bg); color: var(--code-text); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; font-family: Consolas, "D2Coding", Menlo, monospace;
+  font-size: 15px; line-height: 2.1; white-space: pre;
+}
+.codebox .sel { color: var(--code-sel); }
+.codebox .dim { color: var(--code-dim); }
+.blank {
+  font: inherit; font-size: 15px; width: 10ch; padding: 0 4px; line-height: 1.6;
+  background: rgba(127,214,207,.08); color: var(--code-text);
+  border: 0; border-bottom: 2px solid var(--code-sel); border-radius: 3px 3px 0 0;
+}
+.blank:focus { outline: 2px solid var(--code-sel); outline-offset: 1px; }
+.blank.ok { border-bottom-color: var(--code-ok); color: var(--code-ok); }
+.blank.ng { border-bottom-color: var(--code-ng); color: var(--code-ng); }
+.lines2 { white-space: normal; line-height: 1.6; }
+.lines2 .rh { color: var(--code-sel); margin: 4px 0; }
+.lines2 .rh.end { color: var(--code-text); margin-bottom: 14px; }
+.lrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 0 4px 2.2em; }
+.lrow .blank { width: 26ch; max-width: 100%; }
+.lrow .cmt { color: var(--code-dim); min-width: 0; }
+.lrow .pv { white-space: nowrap; }
+.lrow .pv .blank { width: 11ch; }
+.rule2 { margin-bottom: 12px; }
+.rule2 .head { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 15px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rule2 .head .hint { font-family: inherit; font-size: 12px; color: var(--sub); }
+textarea.code {
+  width: 100%; display: block; resize: vertical;
+  font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 15px; line-height: 1.6;
+  background: var(--code-bg); color: var(--code-text); caret-color: var(--code-sel);
+  border: 1.5px solid var(--code-line); border-radius: 8px; padding: 10px 12px; tab-size: 4;
+}
+textarea.code:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea.code:disabled, .blank:disabled { opacity: .85; }
+.closebrace { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 15px; }
+/* 결과 */
+.result { border: 2px solid var(--accent); }
+.rtitle { font-size: 13px; letter-spacing: .04em; color: var(--sub); margin: 0 0 6px; text-align: center; }
+.who { text-align: center; font-size: 20px; font-weight: 800; margin: 0; word-break: break-all; }
+.who span { color: var(--accent); }
+.score { text-align: center; font-size: 48px; font-weight: 800; color: var(--accent); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.rdetail { text-align: center; color: var(--sub); margin: 0 0 8px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.rcond { text-align: center; font-size: 13px; margin: 0 0 8px; color: var(--text); }
+.meta { text-align: center; font-size: 13px; color: var(--sub); margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+.perfect { text-align: center; color: var(--ok); font-weight: 700; margin: 0 0 10px; }
+.stamp {
+  display: block; width: fit-content; margin: 6px auto 10px; padding: 6px 16px; border-radius: 999px;
+  border: 2px solid var(--ok); color: var(--ok); background: var(--ok-soft); font-weight: 800; font-size: 16px;
+}
+.notyet { text-align: center; color: var(--ng); font-weight: 700; margin: 0 0 10px; }
+.btnrow { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.nextnote { text-align: center; font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+.center { text-align: center; }
+/* 피드백 */
+.fb h3 { font-size: 16px; margin: 0 0 4px; }
+.fb .legend { font-size: 13px; color: var(--sub); margin: 0 0 10px; }
+.fbrule { margin-bottom: 10px; }
+.fbrule .codebox { line-height: 1.7; padding: 10px 14px; font-size: 14px; }
+.fbrule .ln.ok { color: var(--code-ok); }
+.fbrule .ln.ng { color: var(--code-ng); }
+.fbrule .why { color: var(--code-dim); }
+.fbnotes { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--warn); }
+.fbnotes li { margin-bottom: 3px; }
+.btn {
+  appearance: none; border: 0; border-radius: 8px; padding: 13px 22px;
+  font-size: 16px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent);
+}
+.btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+  border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.bar .in { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar .prog { flex: 1; font-size: 14px; color: var(--sub); min-width: 0; font-variant-numeric: tabular-nums; }
+.bar .prog b { color: var(--text); }
+.warn { color: var(--ng); font-size: 13px; }
+.dup {
+  position: fixed; inset: 0; z-index: 50; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.dup .box { max-width: 460px; background: var(--card); border: 2px solid var(--ng); border-radius: 12px; padding: 22px 20px; text-align: center; }
+.dup h2 { margin: 0 0 8px; font-size: 19px; color: var(--ng); }
+.dup p { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../" style="display:inline-block;margin:0 0 8px;font-size:14px;font-weight:600;color:var(--accent);text-decoration:none">← 수업 자료 목록</a>
+  <header class="top">
+    <h1><code>style.css</code> 직접 입력 연습</h1>
+    <p>응용프로그래밍 화면구현 · 보고 고르는 것이 아니라 직접 써서 외우기 · 각 단계에서 100점을 받아야 다음 단계가 열립니다.</p>
+  </header>
+
+  <section class="card" id="idcard">
+    <h2>학번과 이름을 입력하세요</h2>
+    <div class="idrow">
+      <label for="sid">학번
+        <input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10">
+      </label>
+      <label for="sname">이름
+        <input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20">
+      </label>
+    </div>
+    <p class="note">각 단계에서 100점을 받으면 결과 화면에 학번·이름과 함께 「인증 완료」가 표시됩니다. 단계마다 그 화면을 캡처해서 제출하세요.</p>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="연습 단계">
+    <button class="tab" role="tab" id="tab1" aria-controls="panel1" aria-selected="true" type="button"><b>1단계</b><span>값 채우기</span><span class="st" id="st1"></span></button>
+    <button class="tab" role="tab" id="tab2" aria-controls="panel2" aria-selected="false" type="button"><b>2단계</b><span>설명 보고 쓰기</span><span class="st" id="st2"></span></button>
+    <button class="tab" role="tab" id="tab3" aria-controls="panel3" aria-selected="false" type="button"><b>3단계</b><span>속성 쓰기</span><span class="st" id="st3"></span></button>
+    <button class="tab" role="tab" id="tab4" aria-controls="panel4" aria-selected="false" type="button"><b>4단계</b><span>백지 쓰기</span><span class="st" id="st4"></span></button>
+  </div>
+  <p class="lockmsg" id="lockmsg" role="alert" hidden></p>
+
+  <div id="panels"></div>
+</div>
+
+<div class="dup" id="dup" role="alertdialog" aria-labelledby="dupTitle" hidden>
+  <div class="box">
+    <h2 id="dupTitle">다른 창에서도 열려 있습니다</h2>
+    <p>이 연습 페이지는 한 번에 한 창에서만 풀 수 있습니다. 다른 창(탭)을 모두 닫고 이 페이지를 새로고침하세요.</p>
+  </div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="prog">
+      <div><b id="barStage">1단계 값 채우기</b> · 걸린 시간 <b id="timer">00:00</b></div>
+      <div class="warn" id="warn" hidden></div>
+    </div>
+    <button class="btn" type="button" id="submitBtn">제출하기</button>
+  </div>
+</div>
+
+<script>
+/* ───── 선생님 수업용 style.css (정답) ───── */
+var BASE = [
+  { sel: "header", decl: [["position","fixed"],["height","70px"],["width","100%"],["top","0px"],["left","0px"],["background-color","orange","color"],["line-height","70px"],["text-align","center"],["font-size","32px"]] },
+  { sel: "nav", decl: [["position","fixed"],["height","30px"],["width","100%"],["top","70px"],["left","0px"],["background-color","pink","color"],["line-height","30px"]] },
+  { sel: "nav a", one: true, decl: [["text-decoration","none"]] },
+  { sel: "footer", decl: [["position","fixed"],["height","70px"],["width","100%"],["bottom","0px"],["left","0px"],["background-color","orange","color"],["line-height","70px"],["text-align","center"]] },
+  { sel: "section", decl: [["position","fixed"],["width","100%"],["top","100px"],["left","0px"],["background-color","lightgray"]] },
+  { sel: "h2", one: true, decl: [["text-align","center"]] },
+  { sel: "table", one: true, decl: [["margin","auto"]] },
+  { sel: ".td-center", one: true, decl: [["text-align","center"]] }
+];
+/* 2단계 설명(주석): 속성 이름은 알려 주지 않고 뜻만 알려 준다 */
+var CMT = {
+  "header": ["스크롤해도 움직이지 않게 화면에 고정", "높이 70px", "가로 너비를 화면 전체(100%)로", "화면 위쪽에서 0px — 맨 위에 붙이기", "화면 왼쪽에서 0px — 왼쪽 끝에 붙이기", "배경색 주황색(orange)", "줄 높이 70px — 글자를 세로 가운데로", "글자를 가로 가운데 정렬", "글자 크기 32px"],
+  "nav": ["스크롤해도 움직이지 않게 화면에 고정", "높이 30px", "가로 너비를 화면 전체(100%)로", "화면 위쪽에서 70px — header 바로 아래", "화면 왼쪽에서 0px — 왼쪽 끝에 붙이기", "배경색 분홍색(pink)", "줄 높이 30px — 글자를 세로 가운데로"],
+  "nav a": ["메뉴 링크의 밑줄 없애기"],
+  "footer": ["스크롤해도 움직이지 않게 화면에 고정", "높이 70px", "가로 너비를 화면 전체(100%)로", "화면 아래쪽에서 0px — 맨 아래에 붙이기", "화면 왼쪽에서 0px — 왼쪽 끝에 붙이기", "배경색 주황색(orange)", "줄 높이 70px — 글자를 세로 가운데로", "글자를 가로 가운데 정렬"],
+  "section": ["스크롤해도 움직이지 않게 화면에 고정", "가로 너비를 화면 전체(100%)로", "화면 위쪽에서 100px — header 70px + nav 30px 아래", "화면 왼쪽에서 0px — 왼쪽 끝에 붙이기", "배경색 연한 회색(lightgray)"],
+  "h2": ["제목 글자를 가로 가운데 정렬"],
+  "table": ["바깥 여백을 자동으로 — 표를 화면 가운데에 배치"],
+  ".td-center": ["이 class가 붙은 칸의 글자를 가로 가운데 정렬"]
+};
+var STAGES = {
+  1: { name: "1단계 값 채우기" },
+  2: { name: "2단계 설명 보고 쓰기" },
+  3: { name: "3단계 속성 쓰기" },
+  4: { name: "4단계 백지 쓰기" }
+};
+var LAST = 4;
+var state = {};   // 단계별 상태
+var active = 1;
+var unlocked = { 1: true };   // 100점을 받아야 다음 단계가 열린다
+var passed = {};
+var pendingTab = null;
+
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function mmss(ms) { var s = Math.floor(ms / 1000); return pad2(Math.floor(s / 60)) + ":" + pad2(s % 60); }
+function normSel(s) { return s.trim().toLowerCase().replace(/\s+/g, " "); }
+function normVal(v) {
+  v = v.trim().replace(/;+\s*$/, "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (/^0(px)?$/.test(v)) v = "0px";
+  return v;
+}
+var NOT_COLOR = { inherit: 1, initial: 1, unset: 1, revert: 1, "revert-layer": 1, currentcolor: 1, transparent: 1 };
+function isColor(v) {
+  v = normVal(v || "");
+  if (!v || NOT_COLOR[v]) return false;
+  try { if (window.CSS && window.CSS.supports) return window.CSS.supports("color", v); } catch (e) {}
+  var o = document.createElement("option");
+  o.style.color = v;
+  return o.style.color !== "";
+}
+function matches(d, got) {
+  if (got === undefined) return false;
+  return d[2] === "color" ? isColor(got) : got === normVal(d[1]);
+}
+function lineText(d) {
+  return "    " + d[0] + ": " + d[1] + ";" + (d[2] === "color" ? "   (올바른 색 이름이면 정답)" : "");
+}
+function short(t) { t = t.replace(/\s+/g, " ").trim(); return t.length > 40 ? t.slice(0, 40) + "…" : t; }
+function countDecl(rules) { return rules.reduce(function (n, r) { return n + r.decl.length; }, 0); }
+
+/* ───── CSS 해석 ───── */
+function parseDecls(body) {
+  var out = { decls: {}, issues: [] };
+  var chunks = body.split(";");
+  chunks.forEach(function (chunk, idx) {
+    var t = chunk.trim();
+    if (!t) return;
+    var isLast = idx === chunks.length - 1;
+    var c = (t.match(/:/g) || []).length;
+    if (c === 0) {
+      out.issues.push(t.indexOf("=") >= 0
+        ? "\"" + short(t) + "\" — 콜론(:) 대신 등호(=)를 썼습니다."
+        : "\"" + short(t) + "\" — 콜론(:)이 없습니다.");
+      return;
+    }
+    if (c > 1) {
+      out.issues.push("\"" + short(t) + "\" — 세미콜론(;)이 빠져 두 줄이 하나로 이어졌습니다. 두 줄 모두 적용되지 않습니다.");
+      return;
+    }
+    var k = t.indexOf(":");
+    var prop = normSel(t.slice(0, k));
+    var val = t.slice(k + 1);
+    if (!val.trim()) { out.issues.push("\"" + short(t) + "\" — 값이 비어 있습니다."); return; }
+    out.decls[prop] = normVal(val);
+    if (isLast) out.issues.push("\"" + short(t) + "\" 끝에 세미콜론(;)이 없습니다. 마지막 줄이라 적용은 되지만, 항상 붙이는 습관을 들이세요.");
+  });
+  return out;
+}
+
+function parseSheet(text) {
+  var res = { charset: false, rules: {}, issues: [] };
+  text = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  res.charset = /@charset\s*["']utf-8["']\s*;/i.test(text);
+  if (!res.charset && /@charset/i.test(text)) res.issues.push("@charset 줄이 정확하지 않습니다. @charset \"UTF-8\"; 로 씁니다.");
+  text = text.replace(/@charset[^;{]*;?/gi, "");
+  var i = 0, guard = 0;
+  while (guard++ < 200) {
+    var open = text.indexOf("{", i);
+    if (open < 0) {
+      var rest = text.slice(i).replace(/}/g, "").trim();
+      if (rest) res.issues.push("\"" + short(rest) + "\" — 중괄호 { } 밖에 남은 코드입니다.");
+      if (text.slice(i).indexOf("}") >= 0) res.issues.push("여는 중괄호 { 없이 닫는 중괄호 } 가 있습니다.");
+      break;
+    }
+    var selRaw = text.slice(i, open);
+    if (selRaw.indexOf("}") >= 0) {
+      res.issues.push("여는 중괄호 { 없이 닫는 중괄호 } 가 있습니다.");
+      selRaw = selRaw.slice(selRaw.lastIndexOf("}") + 1);
+    }
+    var sel = normSel(selRaw);
+    var close = text.indexOf("}", open + 1);
+    var nextOpen = text.indexOf("{", open + 1);
+    var body, broken = false;
+    if (close < 0 || (nextOpen >= 0 && nextOpen < close)) {
+      broken = true;
+      var end = nextOpen >= 0 ? nextOpen : text.length;
+      var seg = text.slice(open + 1, end);
+      var cut = Math.max(seg.lastIndexOf(";"), seg.lastIndexOf("\n"));
+      if (nextOpen < 0 || cut < 0) cut = seg.length - 1;
+      body = seg.slice(0, cut + 1);
+      i = open + 1 + cut + 1;
+    } else {
+      body = text.slice(open + 1, close);
+      i = close + 1;
+    }
+    if (!sel) { res.issues.push("선택자 없이 중괄호 { 가 시작됩니다."); continue; }
+    var d = parseDecls(body);
+    if (!res.rules[sel]) res.rules[sel] = { decls: {}, issues: [], broken: false };
+    var r = res.rules[sel];
+    Object.keys(d.decls).forEach(function (k) { r.decls[k] = d.decls[k]; });
+    r.issues = r.issues.concat(d.issues);
+    if (broken) r.broken = true;
+  }
+  return res;
+}
+
+/* ───── 채점 ───── */
+function gradeLine(d, raw) {
+  var t = raw.trim();
+  if (!t) return { ok: false, why: "빈칸" };
+  var mine = "내 답 「" + short(t) + "」";
+  var p = parseDecls(t);
+  var keys = Object.keys(p.decls);
+  var bad = p.issues.filter(function (x) { return x.indexOf("끝에 세미콜론") < 0; });
+  if (bad.length || keys.length !== 1) return { ok: false, why: mine + " — 「속성: 값;」 모양이 아닙니다" };
+  if (keys[0] !== d[0]) return { ok: false, why: mine + " — 속성 이름이 다릅니다" };
+  if (!matches(d, p.decls[keys[0]])) return { ok: false, why: mine + " — 값이 다릅니다" };
+  if (!/;\s*$/.test(t)) return { ok: false, why: mine + " — 끝에 세미콜론(;)이 없습니다" };
+  return { ok: true, why: "" };
+}
+function grade(expected, parsed, withCharset) {
+  var out = { correct: 0, total: 0, blocks: [], notes: [] };
+  if (withCharset) {
+    out.total++;
+    if (parsed.charset) out.correct++;
+    out.blocks.push({ head: null, lines: [{ ok: parsed.charset, text: parsed.charset ? "@charset \"UTF-8\";" : "@charset 줄", why: parsed.charset ? "" : "빠졌거나 틀렸습니다" }], notes: [] });
+  }
+  var known = {};
+  expected.forEach(function (r) {
+    var key = normSel(r.sel);
+    known[key] = true;
+    var p = parsed.rules[key];
+    var expProps = {};
+    if (!p) {                      // 빠진 규칙은 이름을 알려 주지 않고 개수만 센다
+      out.total += r.decl.length;
+      out.missingRules = (out.missingRules || 0) + 1;
+      r.decl.forEach(function (d) { expProps[d[0]] = true; });
+      return;
+    }
+    var blk = { head: r.sel + " {", lines: [], notes: [] };
+    if (p.broken) blk.notes.push("닫는 중괄호 } 가 빠졌습니다. 이 규칙은 적용되지 않습니다(뒤 규칙까지 망가질 수 있습니다).");
+    var missing = 0;
+    r.decl.forEach(function (d) {
+      out.total++;
+      expProps[d[0]] = true;
+      var got = p.decls[d[0]];
+      var ok = !p.broken && matches(d, got);
+      if (ok) out.correct++;
+      if (got === undefined) { missing++; return; }
+      var why = "";
+      if (!ok) why = p.broken ? "닫는 } 가 없어 적용 안 됨" : "값이 다릅니다";
+      blk.lines.push({ ok: ok, text: "    " + d[0] + ": " + got + ";", why: why });
+    });
+    if (missing) blk.notes.push("이 규칙에 빠진 줄이 " + missing + "개 있습니다.");
+    if (p) {
+      Object.keys(p.decls).forEach(function (k) {
+        if (!expProps[k]) blk.notes.push("\"" + k + ": " + p.decls[k] + "\" — 원래 코드에 없는 줄입니다. 속성 이름 철자를 확인하세요.");
+      });
+      blk.notes = blk.notes.concat(p.issues);
+    }
+    out.blocks.push(blk);
+  });
+  if (out.missingRules) out.notes.push("규칙(선택자 { }) " + out.missingRules + "개가 통째로 빠졌습니다. 선택자 철자와 중괄호를 확인하세요.");
+  Object.keys(parsed.rules).forEach(function (s) {
+    if (!known[s]) out.notes.push("\"" + s + "\" — 원래 style.css에 없는 선택자입니다. 철자를 확인하세요.");
+  });
+  out.notes = out.notes.concat(parsed.issues);
+  return out;
+}
+
+/* ───── 화면 만들기 ───── */
+function blockInput(e) {
+  e.preventDefault();
+  var w = $("warn");
+  w.textContent = "복사·붙여넣기는 쓸 수 없습니다. 직접 입력하세요.";
+  w.hidden = false;
+}
+function makeTextarea(id, rows, ph) {
+  var ta = el("textarea", "code");
+  ta.id = id; ta.rows = rows; ta.placeholder = ph || "";
+  ta.setAttribute("spellcheck", "false");
+  ta.setAttribute("autocomplete", "off");
+  ta.setAttribute("autocorrect", "off");
+  ta.setAttribute("autocapitalize", "off");
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      var s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(en);
+      ta.selectionStart = ta.selectionEnd = s + 4;
+      ta.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  });
+  return ta;
+}
+
+function buildPanel(n) {
+  var st = state[n];
+  var panel = $("panel" + n);
+  panel.innerHTML = "";
+
+  var res = el("section", "card result");
+  res.id = "res" + n; res.hidden = true;
+  res.setAttribute("aria-live", "polite");
+  panel.appendChild(res);
+
+  var work = el("section", "card");
+  var h = el("h2", null, STAGES[n].name);
+  work.appendChild(h);
+  var how = el("ul", "howto");
+  var tips = {
+    1: ["속성 이름과 주석(/* 설명 */)을 보고, 빈칸에 알맞은 값만 입력하세요. (예: fixed, 70px, center)",
+        "주석은 그 줄이 하는 일을 알려 줍니다. 뜻에 맞는 값을 떠올려 쓰세요. 세미콜론(;)은 이미 있습니다.",
+        "header·nav·footer의 background-color는 수업에서 쓴 색(orange, pink)이 아니어도 올바른 색 이름이면 정답입니다."],
+    2: ["주석(/* 설명 */)을 읽고, 빈칸에 「속성: 값;」 한 줄을 통째로 쓰세요. (예: color: white;)",
+        "속성 이름 철자, 콜론(:), 끝의 세미콜론(;)까지 모두 정확해야 정답입니다.",
+        "header·nav·footer의 background-color는 올바른 색 이름이면 정답입니다."],
+    3: ["선택자는 보여 줍니다. 중괄호 안에 들어갈 줄을 모두 직접 쓰세요.",
+        "한 줄에 「속성: 값;」 하나씩 씁니다. 속성 순서는 달라도 됩니다.",
+        "옆에 적힌 숫자만큼 줄을 써야 합니다."],
+    4: ["아무것도 보지 않고 style.css 전체를 처음부터 끝까지 쓰세요.",
+        "맨 위 @charset 줄부터 .td-center까지 모두 씁니다. 규칙과 속성의 순서는 달라도 됩니다.",
+        "header·nav·footer의 background-color는 올바른 색 이름이면 정답입니다.",
+        "Tab 키를 누르면 4칸 들여쓰기가 됩니다."]
+  }[n];
+  tips.forEach(function (t) { how.appendChild(el("li", null, t)); });
+  work.appendChild(how);
+
+  st.inputs = [];
+  if (n === 1) {
+    var box = el("div", "codebox lines2");
+    box.appendChild(el("div", "dim", "@charset \"UTF-8\";"));
+    BASE.forEach(function (r, ri) {
+      box.appendChild(el("div", "rh", r.sel + " {"));
+      r.decl.forEach(function (d, di) {
+        var row = el("div", "lrow");
+        var code = el("span", "pv");
+        code.appendChild(document.createTextNode(d[0] + ": "));
+        var inp = document.createElement("input");
+        inp.className = "blank";
+        inp.id = "b1_" + ri + "_" + di;
+        inp.type = "text";
+        inp.setAttribute("autocomplete", "off");
+        inp.setAttribute("autocapitalize", "off");
+        inp.setAttribute("spellcheck", "false");
+        inp.setAttribute("aria-label", r.sel + " " + d[0] + " 값 — " + CMT[r.sel][di]);
+        inp.dataset.r = ri; inp.dataset.d = di;
+        code.appendChild(inp);
+        code.appendChild(document.createTextNode(";"));
+        row.appendChild(code);
+        row.appendChild(el("span", "cmt", "/* " + CMT[r.sel][di] + " */"));
+        box.appendChild(row);
+        st.inputs.push(inp);
+      });
+      box.appendChild(el("div", "rh end", "}"));
+    });
+    work.appendChild(box);
+  }
+  if (n === 2) {
+    var box2 = el("div", "codebox lines2");
+    box2.appendChild(el("div", "dim", "@charset \"UTF-8\";"));
+    BASE.forEach(function (r, ri) {
+      box2.appendChild(el("div", "rh", r.sel + " {"));
+      r.decl.forEach(function (d, di) {
+        var row = el("div", "lrow");
+        var inp = document.createElement("input");
+        inp.className = "blank";
+        inp.id = "b2_" + ri + "_" + di;
+        inp.type = "text";
+        inp.setAttribute("autocomplete", "off");
+        inp.setAttribute("autocapitalize", "off");
+        inp.setAttribute("spellcheck", "false");
+        inp.setAttribute("aria-label", r.sel + " — " + CMT[r.sel][di]);
+        inp.dataset.r = ri; inp.dataset.d = di;
+        row.appendChild(inp);
+        row.appendChild(el("span", "cmt", "/* " + CMT[r.sel][di] + " */"));
+        box2.appendChild(row);
+        st.inputs.push(inp);
+      });
+      box2.appendChild(el("div", "rh end", "}"));
+    });
+    work.appendChild(box2);
+  }
+  if (n === 3) {
+    work.appendChild(el("div", "codebox", "@charset \"UTF-8\";"));
+    work.lastChild.style.marginBottom = "12px";
+    BASE.forEach(function (r, ri) {
+      var wrap = el("div", "rule2");
+      var head = el("label", "head");
+      head.setAttribute("for", "t3_" + ri);
+      head.appendChild(el("span", null, r.sel + " {"));
+      head.appendChild(el("span", "hint", "속성 " + r.decl.length + "개"));
+      wrap.appendChild(head);
+      var ta = makeTextarea("t3_" + ri, Math.max(2, r.decl.length + 1), "");
+      wrap.appendChild(ta);
+      wrap.appendChild(el("div", "closebrace", "}"));
+      work.appendChild(wrap);
+      st.inputs.push(ta);
+    });
+  }
+  if (n === 4) {
+    var big = makeTextarea("t4", 30, "여기에 style.css 전체를 입력하세요.");
+    big.setAttribute("aria-label", "style.css 전체 입력");
+    work.appendChild(big);
+    st.inputs.push(big);
+  }
+  panel.appendChild(work);
+
+  var fb = el("section", "card fb");
+  fb.id = "fb" + n; fb.hidden = true;
+  panel.appendChild(fb);
+
+  st.inputs.forEach(function (x) {
+    x.addEventListener("input", function () { if (!st.start) st.start = Date.now(); });
+  });
+  st.submitted = false;
+  st.start = null;
+}
+
+/* ───── 제출 ───── */
+function submit() {
+  var st = state[active];
+  if (st.submitted) return;
+  var sid = $("sid").value.trim(), sname = $("sname").value.trim();
+  $("sid").classList.toggle("need", !sid);
+  $("sname").classList.toggle("need", !sname);
+  if (!sid || !sname) {
+    var w = $("warn"); w.textContent = "학번과 이름을 먼저 입력하세요."; w.hidden = false;
+    $("idcard").scrollIntoView({ block: "start" });
+    (!sid ? $("sid") : $("sname")).focus();
+    return;
+  }
+  var result;
+  if (active === 1) {
+    result = { correct: 0, total: 0, blocks: [], notes: [] };
+    var blocks = BASE.map(function (r) { return { head: r.sel + " {", lines: [], notes: [] }; });
+    st.inputs.forEach(function (inp) {
+      var r = BASE[+inp.dataset.r], d = r.decl[+inp.dataset.d];
+      var v = inp.value;
+      var ok = matches(d, normVal(v));
+      result.total++;
+      if (ok) result.correct++;
+      inp.classList.add(ok ? "ok" : "ng");
+      blocks[+inp.dataset.r].lines.push({ ok: ok, text: "    " + d[0] + ": " + (v.trim() || "____") + ";", why: ok ? "" : (v.trim() ? "값이 다릅니다" : "빈칸") });
+    });
+    result.blocks = blocks;
+  } else if (active === 2) {
+    result = { correct: 0, total: 0, blocks: [], notes: [] };
+    var blocks2 = BASE.map(function (r) { return { head: r.sel + " {", lines: [], notes: [] }; });
+    st.inputs.forEach(function (inp) {
+      var d = BASE[+inp.dataset.r].decl[+inp.dataset.d];
+      var g = gradeLine(d, inp.value);
+      result.total++;
+      if (g.ok) result.correct++;
+      inp.classList.add(g.ok ? "ok" : "ng");
+      var r2 = BASE[+inp.dataset.r];
+      blocks2[+inp.dataset.r].lines.push({ ok: g.ok, text: g.ok ? "    " + inp.value.trim() : "    /* " + CMT[r2.sel][+inp.dataset.d] + " */", why: g.why });
+    });
+    result.blocks = blocks2;
+  } else if (active === 3) {
+    var parsed = { charset: true, rules: {}, issues: [] };
+    BASE.forEach(function (r, ri) {
+      var body = st.inputs[ri].value;
+      if (body.indexOf("{") >= 0) body = body.slice(body.indexOf("{") + 1);
+      body = body.replace(/}/g, "");
+      var d = parseDecls(body);
+      parsed.rules[normSel(r.sel)] = { decls: d.decls, issues: d.issues, broken: false };
+    });
+    result = grade(BASE, parsed, false);
+  } else {
+    result = grade(BASE, parseSheet(st.inputs[0].value), true);
+  }
+  st.submitted = true;
+  st.attempt = (st.attempt || 0) + 1;
+  st.inputs.forEach(function (x) { x.disabled = true; });
+  showResult(active, result, sid, sname);
+}
+
+function showResult(n, r, sid, sname) {
+  var st = state[n];
+  var now = new Date();
+  var elapsed = st.start ? now - st.start : 0;
+  var score = r.total ? Math.round(r.correct / r.total * 100) : 0;
+  var res = $("res" + n);
+  res.innerHTML = "";
+  res.appendChild(el("p", "rtitle", "style.css 직접 입력 연습 결과 · " + STAGES[n].name));
+  var who = el("p", "who");
+  who.appendChild(el("span", null, sid));
+  who.appendChild(document.createTextNode(" "));
+  who.appendChild(el("span", null, sname));
+  res.appendChild(who);
+  res.appendChild(el("div", "score", score + "점"));
+  res.appendChild(el("p", "rdetail", r.total + "개 중 " + r.correct + "개 정답 · 걸린 시간 " + mmss(elapsed)));
+  if (score === 100) {
+    passed[n] = true;
+    if (n < LAST) unlocked[n + 1] = true;
+    res.appendChild(el("span", "stamp", "✓ " + STAGES[n].name + " 인증 완료"));
+    res.appendChild(el("p", "perfect", n < LAST ? "이 화면을 캡처해서 제출한 뒤 " + (n + 1) + "단계로 넘어가세요." : "모든 단계를 인증했습니다. 이 화면을 캡처해서 제출하세요."));
+  } else {
+    res.appendChild(el("p", "notyet", "100점을 받아야 " + (n < LAST ? (n + 1) + "단계가 열립니다." : "인증이 완료됩니다.") + " 틀린 줄을 확인하고 다시 하세요."));
+  }
+  res.appendChild(el("p", "meta", "제출 " + now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) + " " + pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + " · 이 단계 " + st.attempt + "번째 제출"));
+  var c2 = el("div", "btnrow");
+  if (score === 100 && n < LAST) {
+    var next = el("button", "btn", (n + 1) + "단계로 넘어가기");
+    next.type = "button";
+    next.addEventListener("click", function () { goTab(n + 1, true); });
+    c2.appendChild(next);
+  }
+  var btn = el("button", score === 100 && n < LAST ? "btn ghost" : "btn", "다시 하기");
+  btn.type = "button";
+  btn.addEventListener("click", function () { retry(n); });
+  c2.appendChild(btn);
+  res.appendChild(c2);
+  if (score === 100 && n < LAST) res.appendChild(el("p", "nextnote", "넘어가면 이 단계에서 쓴 답과 결과는 지워집니다. 먼저 캡처하세요."));
+  res.hidden = false;
+  updateTabs();
+
+  var fb = $("fb" + n);
+  fb.innerHTML = "";
+  fb.appendChild(el("h3", null, "줄별 채점 결과"));
+  fb.appendChild(el("p", "legend", "초록색 줄은 맞은 줄, 빨간색 줄은 틀린 줄입니다. 정답은 보여 주지 않습니다. 틀린 이유를 보고 스스로 고쳐서 다시 하세요."));
+  r.blocks.forEach(function (b) {
+    var wrap = el("div", "fbrule");
+    var box = el("div", "codebox");
+    if (b.head) box.appendChild(el("div", null, b.head));
+    b.lines.forEach(function (l) {
+      var ln = el("div", "ln " + (l.ok ? "ok" : "ng"), (l.ok ? "✓ " : "✗ ") + l.text);
+      if (l.why) ln.appendChild(el("span", "why", "   ← " + l.why));
+      box.appendChild(ln);
+    });
+    if (b.head) box.appendChild(el("div", null, "}"));
+    wrap.appendChild(box);
+    if (b.notes.length) {
+      var ul = el("ul", "fbnotes");
+      b.notes.forEach(function (t) { ul.appendChild(el("li", null, t)); });
+      wrap.appendChild(ul);
+    }
+    fb.appendChild(wrap);
+  });
+  if (r.notes.length) {
+    var ul2 = el("ul", "fbnotes");
+    r.notes.forEach(function (t) { ul2.appendChild(el("li", null, t)); });
+    fb.appendChild(ul2);
+  }
+  fb.hidden = false;
+  updateBar();
+  res.scrollIntoView({ block: "start" });
+}
+
+function retry(n) {
+  buildPanel(n);
+  updateBar();
+  $("panel" + n).scrollIntoView({ block: "start" });
+}
+
+/* ───── 탭·하단 바 ───── */
+function showLock(msg) {
+  var m = $("lockmsg");
+  m.textContent = msg;
+  m.hidden = false;
+}
+function hasInput(st) {
+  return !st.submitted && st.inputs.some(function (x) { return x.value.trim() !== ""; });
+}
+function goTab(n, force) {
+  if (n === active) { pendingTab = null; $("lockmsg").hidden = true; return; }
+  if (!unlocked[n]) {
+    pendingTab = null;
+    showLock((n - 1) + "단계를 100점 받고 인증을 받아야 " + n + "단계로 넘어갈 수 있습니다. 먼저 " + (n - 1) + "단계를 100점 받으세요.");
+    return;
+  }
+  if (!force && hasInput(state[active]) && pendingTab !== n) {
+    pendingTab = n;
+    showLock("지금 " + STAGES[active].name + "에 입력한 내용이 모두 지워집니다. 그래도 이동하려면 " + n + "단계를 한 번 더 누르세요.");
+    return;
+  }
+  pendingTab = null;
+  buildPanel(active);          // 떠나는 단계는 답과 결과를 모두 지운다
+  selectTab(n);
+  $("panel" + n).scrollIntoView({ block: "start" });
+}
+function updateTabs() {
+  for (var i = 1; i <= LAST; i++) {
+    var t = $("tab" + i);
+    t.setAttribute("aria-disabled", unlocked[i] ? "false" : "true");
+    t.classList.toggle("done", !!passed[i]);
+    $("st" + i).textContent = passed[i] ? "✓ 인증 완료" : (unlocked[i] ? "" : "잠김");
+  }
+}
+function selectTab(n) {
+  active = n;
+  for (var i = 1; i <= LAST; i++) {
+    $("tab" + i).setAttribute("aria-selected", i === n ? "true" : "false");
+    $("tab" + i).tabIndex = i === n ? 0 : -1;
+    $("panel" + i).hidden = i !== n;
+  }
+  $("warn").hidden = true;
+  $("lockmsg").hidden = true;
+  updateTabs();
+  updateBar();
+}
+function updateBar() {
+  var st = state[active];
+  $("barStage").textContent = STAGES[active].name;
+  $("bar").hidden = !!st.submitted;
+  $("timer").textContent = mmss(st.start ? Date.now() - st.start : 0);
+}
+setInterval(function () {
+  var st = state[active];
+  if (st && !st.submitted) $("timer").textContent = mmss(st.start ? Date.now() - st.start : 0);
+}, 1000);
+
+(function init() {
+  var panels = $("panels");
+  for (var n = 1; n <= LAST; n++) {
+    var p = el("div");
+    p.id = "panel" + n;
+    p.setAttribute("role", "tabpanel");
+    p.setAttribute("aria-labelledby", "tab" + n);
+    panels.appendChild(p);
+    state[n] = {};
+    buildPanel(n);
+    (function (k) { $("tab" + k).addEventListener("click", function () { goTab(k, false); }); })(n);
+  }
+  $("submitBtn").addEventListener("click", submit);
+  ["copy", "cut", "paste", "drop", "dragstart"].forEach(function (t) {
+    document.addEventListener(t, blockInput, true);
+  });
+  document.addEventListener("beforeinput", function (e) {
+    if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType || "")) blockInput(e);
+  }, true);
+  document.addEventListener("contextmenu", function (e) {
+    if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) e.preventDefault();
+  }, true);
+  ["sid", "sname"].forEach(function (id) {
+    $(id).addEventListener("input", function () { this.classList.remove("need"); $("warn").hidden = true; });
+  });
+  selectTab(1);
+  watchOtherWindows();
+})();
+
+/* ───── 같은 페이지를 두 창에서 열면 두 창 모두 잠근다 ───── */
+function lockDuplicate() {
+  if (!$("dup").hidden) return;
+  for (var n = 1; n <= LAST; n++) buildPanel(n);   // 보이던 답과 결과를 모두 지운다
+  $("dup").hidden = false;
+  $("bar").hidden = true;
+}
+function watchOtherWindows() {
+  var me = Math.random().toString(36).slice(2);
+  function onMsg(m) {
+    if (!m || m.id === me) return;
+    if (m.type === "hello") send({ type: "here", id: me });
+    lockDuplicate();
+  }
+  var ch = null, send;
+  try { ch = new BroadcastChannel("style-css-typing-practice"); } catch (e) { ch = null; }
+  if (ch) {
+    ch.onmessage = function (e) { onMsg(e.data); };
+    send = function (m) { try { ch.postMessage(m); } catch (e) {} };
+  } else {
+    window.addEventListener("storage", function (e) {
+      if (e.key === "style-css-typing-practice" && e.newValue) { try { onMsg(JSON.parse(e.newValue)); } catch (x) {} }
+    });
+    send = function (m) {
+      try { m.t = Date.now(); localStorage.setItem("style-css-typing-practice", JSON.stringify(m)); } catch (e) {}
+    };
+  }
+  send({ type: "hello", id: me });
+}
+</script>
+</body>
+</html>
