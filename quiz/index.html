@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>형성평가</title>
+<link rel="stylesheet" href="../assets/common.css">
+<style>
+.q { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit; }
+.q:hover { border-color: var(--accent); }
+.q h3 { margin: 0; font-size: 16px; }
+.q p { margin: 0; font-size: 14px; color: var(--sub); flex: 1; }
+.q .st { min-height: 22px; margin-top: 6px; }
+</style>
+</head>
+<body data-wc-page>
+<main class="wrap">
+  <h1>형성평가</h1>
+  <p class="lead">배운 내용을 문제로 확인합니다. 학번과 이름은 자동으로 들어가고, 채점한 점수는 「내 과제」에 기록됩니다.</p>
+  <div id="list"></div>
+</main>
+<script src="../assets/config.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  if (!WC.user()) return;
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  /* 평가를 추가하려면 여기에 한 줄을 더 쓰면 됩니다. dir = quiz 폴더 안의 폴더 이름 */
+  var SECTIONS = [
+    { name: "화면 디자인 (style.css)", items: [
+      { dir: "basic", title: "화면구현 형성평가", desc: "기본 태그와 CSS · 객관식 10문제" },
+      { dir: "style-css", title: "style.css 형성평가", desc: "객관식 20문제" },
+      { dir: "style-practice", title: "style.css 직접 입력 연습", desc: "값 채우기 → 백지 쓰기 4단계 · 단계마다 100점 통과" },
+      { dir: "style-practice-90", title: "style.css 직접 입력 연습 (90점 통과)", desc: "같은 4단계 · 단계마다 90점 통과" } ] },
+    { name: "JSP 페이지", items: [
+      { dir: "jsp-pages", title: "JSP 페이지 구성 형성평가", desc: "header.jsp · footer.jsp · 주요 페이지 · 객관식 20문제" } ] },
+    { name: "수행평가 대비", items: [
+      { dir: "exam-prep", title: "2차 수행평가 대비 코드 연습", desc: "코드 연습과 모의 수행평가" },
+      { dir: "exam-check", title: "수행평가 대비 최종 점검", desc: "형성평가 20문제를 다 풀면 최종평가 20문제" },
+      { dir: "devenv", title: "개발환경 구축하기 최종 점검", desc: "낱말로 답하는 20문제" } ] }
+  ];
+  var rec = WC.records(), base = location.pathname.replace(/index\.html$/, ""), list = document.getElementById("list");
+  SECTIONS.forEach(function (s) {
+    list.appendChild(el("h2", null, s.name));
+    var grid = el("div", "grid");
+    s.items.forEach(function (it) {
+      var a = el("a", "card q"); a.href = it.dir + "/index.html";
+      a.appendChild(el("h3", null, it.title)); a.appendChild(el("p", null, it.desc));
+      var best = null, cnt = 0, pass = false, pre = "quiz:" + base + it.dir + "/";
+      Object.keys(rec).forEach(function (id) { if (id.indexOf(pre) === 0) { var r = rec[id]; best = best === null ? r.best : Math.max(best, r.best); cnt += r.count; pass = pass || r.pass; } });
+      var st = el("div", "st");
+      if (best !== null) st.appendChild(el("span", "badge " + (pass ? "ok" : "mid"), "최고 " + best + "점 · " + cnt + "회"));
+      a.appendChild(st);
+      grid.appendChild(a);
+    });
+    list.appendChild(grid);
+  });
+})();
+</script>
+</body>
+</html>

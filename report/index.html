@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 과제 현황</title>
+<link rel="stylesheet" href="../assets/common.css">
+<style>
+.sheet { border: 2px solid var(--accent); }
+.sheet .top { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 12px; }
+.sheet .who { font-size: 22px; font-weight: 800; color: var(--accent); margin: 0; }
+.sheet .when { margin-left: auto; color: var(--sub); font-size: 14px; font-variant-numeric: tabular-nums; }
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.sum div { background: var(--accent-soft); border-radius: 10px; padding: 8px 12px; }
+.sum b { display: block; font-size: 22px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.sum span { font-size: 13px; color: var(--sub); }
+.tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+.tabs button { font: inherit; font-size: 14px; font-weight: 700; padding: 6px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card); color: var(--sub); cursor: pointer; }
+.tabs button[aria-pressed=true] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+table.tbl td.num { text-align: right; white-space: nowrap; }
+table.tbl tr.grp th { background: var(--bg); color: var(--sub); font-size: 13px; }
+.empty { text-align: center; color: var(--sub); padding: 26px 0; }
+.sendmsg { font-weight: 700; margin: 8px 0 0; min-height: 1.5em; }
+</style>
+</head>
+<body data-wc-page>
+<main class="wrap">
+  <h1>내 과제 현황</h1>
+  <p class="lead">이 화면을 <b>캡처해서 제출</b>하세요. 학번·이름과 날짜, 활동 기록이 한 화면에 보여야 합니다.</p>
+  <div class="tabs" role="group" aria-label="기간">
+    <button type="button" id="tToday" aria-pressed="true">오늘 한 것</button>
+    <button type="button" id="tAll" aria-pressed="false">전체 기록</button>
+  </div>
+  <div class="card sheet">
+    <div class="top"><p class="who" id="who"></p><span class="when" id="when"></span></div>
+    <div class="sum" id="sum"></div>
+    <div class="tablewrap" id="box"></div>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button class="btn" type="button" id="sendBtn" hidden>선생님께 제출하기</button>
+    <a class="btn ghost" href="../index.html">처음 화면으로</a>
+  </div>
+  <p class="sendmsg" id="sendMsg" style="text-align:center"></p>
+  <p class="note" style="text-align:center">기록은 지금 쓰는 컴퓨터의 브라우저에 저장됩니다. 다른 컴퓨터에서 한 기록은 여기에 나오지 않습니다.</p>
+</main>
+<script src="../assets/config.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var u = WC.user(); if (!u) return;
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  var GROUPS = ["타자 연습", "코드 연습", "형성평가"], onlyToday = true, rows = [];
+
+  function collect() {
+    var rec = WC.records(), today = WC.today(), out = [];
+    Object.keys(rec).forEach(function (id) {
+      var r = rec[id];
+      if (onlyToday && WC.today(new Date(r.lastTs)) !== today) return;
+      out.push({ id: id, r: r });
+    });
+    out.sort(function (a, b) { var g = GROUPS.indexOf(a.r.group) - GROUPS.indexOf(b.r.group); return g || (a.id < b.id ? -1 : 1); });
+    return out;
+  }
+  function draw() {
+    rows = collect();
+    $("who").textContent = u.sid + " " + u.name;
+    $("when").textContent = (onlyToday ? "오늘 기록 · " : "전체 기록 · ") + WC.stamp(Date.now());
+    var n = { "타자 연습": 0, "코드 연습": 0, "형성평가": 0 }, done = 0, speed = 0;
+    rows.forEach(function (x) { n[x.r.group] = (n[x.r.group] || 0) + 1; if (x.r.pass) done++; if (x.r.group === "타자 연습") speed = Math.max(speed, x.r.best); });
+    var sum = $("sum"); sum.innerHTML = "";
+    [["타자 연습", n["타자 연습"] + "단계"], ["타자 최고", speed + "타"], ["코드 연습", n["코드 연습"] + "개"], ["형성평가", n["형성평가"] + "개"], ["목표 달성", done + "개"]].forEach(function (s) {
+      var d = el("div"); d.appendChild(el("b", null, s[1])); d.appendChild(el("span", null, s[0])); sum.appendChild(d);
+    });
+    var box = $("box"); box.innerHTML = "";
+    if (!rows.length) { box.appendChild(el("p", "empty", onlyToday ? "오늘 한 활동이 아직 없습니다. 타자 연습부터 시작하세요." : "아직 기록이 없습니다.")); return; }
+    var t = el("table", "tbl"), hr = el("tr");
+    ["활동", "최고", "최근", "횟수", "결과", "마지막으로 한 때"].forEach(function (h) { hr.appendChild(el("th", null, h)); });
+    t.appendChild(hr);
+    var g = null;
+    rows.forEach(function (x) {
+      var r = x.r;
+      if (r.group !== g) { g = r.group; var gr = el("tr", "grp"), th = el("th", null, g); th.colSpan = 6; gr.appendChild(th); t.appendChild(gr); }
+      var tr = el("tr");
+      tr.appendChild(el("td", null, r.title));
+      tr.appendChild(el("td", "num", r.best + r.unit));
+      tr.appendChild(el("td", "num", r.last + r.unit));
+      tr.appendChild(el("td", "num", r.count + "회"));
+      var td = el("td"); td.appendChild(el("span", "badge " + (r.pass ? "ok" : "mid"), r.pass ? "달성" : "연습 중")); tr.appendChild(td);
+      tr.appendChild(el("td", "num", WC.stamp(r.lastTs)));
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
+  }
+  function tab(today) { onlyToday = today; $("tToday").setAttribute("aria-pressed", String(today)); $("tAll").setAttribute("aria-pressed", String(!today)); draw(); }
+  $("tToday").addEventListener("click", function () { tab(true); });
+  $("tAll").addEventListener("click", function () { tab(false); });
+
+  /* 구글 시트로 제출 (assets/config.js 의 submitUrl 을 채웠을 때만 버튼이 보임) */
+  var url = WC.config.submitUrl;
+  if (url) {
+    $("sendBtn").hidden = false;
+    $("sendBtn").addEventListener("click", function () {
+      var m = $("sendMsg");
+      if (!rows.length) { m.style.color = "var(--ng)"; m.textContent = "제출할 기록이 없습니다."; return; }
+      var body = { sid: u.sid, name: u.name, sentAt: WC.stamp(Date.now()), scope: onlyToday ? "오늘" : "전체",
+        records: rows.map(function (x) { var r = x.r; return { group: r.group, title: r.title, best: r.best, last: r.last, unit: r.unit, count: r.count, pass: r.pass ? "달성" : "연습 중", detail: r.bestDetail || "", lastAt: WC.stamp(r.lastTs) }; }) };
+      $("sendBtn").disabled = true; m.style.color = "var(--sub)"; m.textContent = "제출하는 중…";
+      fetch(url, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) })
+        .then(function () { m.style.color = "var(--ok)"; m.textContent = "✓ 제출했습니다. (" + body.sentAt + ", 기록 " + rows.length + "개)"; })
+        .catch(function () { m.style.color = "var(--ng)"; m.textContent = "제출하지 못했습니다. 인터넷 연결을 확인하고 다시 누르거나, 이 화면을 캡처해서 제출하세요."; })
+        .then(function () { $("sendBtn").disabled = false; });
+    });
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2차 수행평가 대비 코드 연습</title>
+<style>
+/* 레이아웃: 한 열 흐름 — 모드 탭(학습지 연습 / 모의 수행평가) → 문항 카드 목록, 모의평가는 하단 고정 제출 바 */
+:root {
+  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
+  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
+  --ok: #1d8a4a; --ok-soft: #e4f5ea; --ng: #c93a3a; --ng-soft: #fbe9e9; --warn: #9a6400;
+  --code-bg: #1d2628; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf; --code-line: #3a4a4d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+    --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --warn: #e3a73a;
+    --code-bg: #0c1112; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf; --code-line: #2a3739;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+  --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --warn: #e3a73a;
+  --code-bg: #0c1112; --code-text: #e6efef; --code-dim: #8fa5a8; --code-sel: #7fd6cf; --code-line: #2a3739;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px; word-break: keep-all; overflow-wrap: anywhere;
+}
+code, pre, textarea.code, .mono { font-family: Consolas, "D2Coding", Menlo, monospace; }
+.wrap { max-width: 820px; margin: 0 auto; padding: 20px 16px 120px; }
+.top h1 { font-size: 22px; margin: 4px 0 2px; text-wrap: balance; }
+.top p { margin: 0 0 16px; color: var(--sub); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.card h2 { font-size: 16px; margin: 0 0 8px; }
+/* 모드 탭 */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.mode {
+  appearance: none; font: inherit; text-align: left; cursor: pointer; min-width: 0;
+  border: 1.5px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 10px 12px;
+}
+.mode b { display: block; font-size: 16px; }
+.mode span { font-size: 13px; color: var(--sub); }
+.mode[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.mode:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 진행 */
+.progress { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.meter { flex: 1; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+.part { font-size: 14px; letter-spacing: .04em; color: var(--accent); font-weight: 700; margin: 22px 0 8px; }
+/* 문항 */
+.q .qh { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; }
+.q .no { font-weight: 800; color: var(--accent); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.q .qt { font-weight: 600; min-width: 0; }
+.q .badge { margin-left: auto; flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--ok); }
+.q.solved { border-color: var(--ok); }
+pre.ctx {
+  background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 10px 12px;
+  margin: 0 0 8px; overflow-x: auto; font-size: 14px; line-height: 1.6;
+}
+pre.ctx .blank { color: var(--code-sel); }
+pre.ctx.fill { font-size: 15px; white-space: pre-wrap; }
+.inl {
+  font: inherit; width: 9ch; padding: 0 4px; margin: 0 2px; line-height: 1.5;
+  background: rgba(127,214,207,.10); color: var(--code-text);
+  border: 0; border-bottom: 2px solid var(--code-sel); border-radius: 3px 3px 0 0;
+}
+.inl:focus { outline: 2px solid var(--code-sel); outline-offset: 1px; }
+.inl:disabled { opacity: .85; }
+textarea.code {
+  width: 100%; display: block; resize: vertical; font-size: 15px; line-height: 1.6;
+  background: var(--code-bg); color: var(--code-text); caret-color: var(--code-sel);
+  border: 1.5px solid var(--code-line); border-radius: 8px; padding: 9px 12px; tab-size: 4;
+}
+textarea.code:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea.code:disabled { opacity: .85; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.btn {
+  appearance: none; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit;
+  font-size: 15px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent);
+}
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.big { padding: 13px 22px; font-size: 16px; }
+.btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.fb { margin-top: 8px; font-size: 14px; font-weight: 600; }
+.fb.ok { color: var(--ok); }
+.fb.ng { color: var(--ng); }
+.fb ul { margin: 2px 0 0; padding-left: 18px; font-weight: 500; }
+.hint { margin-top: 8px; background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.hint code { white-space: pre-wrap; }
+.opts { display: grid; gap: 6px; }
+.opt { display: flex; gap: 8px; align-items: flex-start; border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; cursor: pointer; }
+.opt input { margin-top: 5px; accent-color: var(--accent); }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+/* 학번·이름 */
+.idrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.idrow label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; min-width: 0; }
+.idrow input {
+  font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 8px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--text); width: 100%;
+}
+.idrow input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.idrow input.need { border-color: var(--ng); }
+@media (max-width: 420px) { .idrow { grid-template-columns: 1fr; } }
+.note { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+.rule { font-size: 14px; }
+.rule table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.rule th, .rule td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; white-space: nowrap; }
+.rule th { background: var(--accent-soft); }
+.tablewrap { overflow-x: auto; }
+/* 결과 */
+.result { border: 2px solid var(--accent); text-align: center; }
+.rtitle { font-size: 13px; letter-spacing: .04em; color: var(--sub); margin: 0 0 6px; }
+.who { font-size: 20px; font-weight: 800; margin: 0; }
+.who span { color: var(--accent); }
+.score { font-size: 48px; font-weight: 800; color: var(--accent); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.rdetail { color: var(--sub); margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ox { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 0 0 12px; }
+.ox div { border-radius: 6px; font-size: 12px; padding: 3px 0; line-height: 1.3; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.ox div b { display: block; font-size: 14px; }
+.ox .o { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.ox .x { background: var(--ng-soft); color: var(--ng); border-color: var(--ng); }
+.meta { font-size: 13px; color: var(--sub); margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+.q.okq { border-color: var(--ok); }
+.q.ngq { border-color: var(--ng); }
+/* 하단 바 */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; background: var(--card);
+  border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.bar .in { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar .prog { flex: 1; font-size: 14px; color: var(--sub); min-width: 0; font-variant-numeric: tabular-nums; }
+.bar .prog b { color: var(--text); }
+.warn { color: var(--ng); font-size: 13px; }
+.toast {
+  position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--ng); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px);
+}
+.dup { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dup .box { max-width: 460px; background: var(--card); border: 2px solid var(--ng); border-radius: 12px; padding: 22px 20px; text-align: center; }
+.dup h2 { margin: 0 0 8px; font-size: 19px; color: var(--ng); }
+.dup p { margin: 0; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>2차 수행평가 대비 코드 연습</h1>
+    <p>응용프로그래밍 화면구현 · UI 테스트 코드 작성 · 파일명과 상황이 바뀌어도 필요한 코드를 직접 쓸 수 있게 연습합니다.</p>
+  </header>
+
+  <div class="modes" role="tablist" aria-label="연습 방식">
+    <button class="mode" role="tab" id="modeP" aria-controls="viewP" aria-selected="true" type="button"><b>학습지 연습</b><span id="pModeSub">한 문항씩 바로 확인 · 힌트 있음</span></button>
+    <button class="mode" role="tab" id="modeM" aria-controls="viewM" aria-selected="false" type="button"><b>모의 수행평가</b><span>코드 10개 · 실제 채점 기준으로 점수 환산</span></button>
+  </div>
+
+  <!-- 학습지 연습 -->
+  <div id="viewP" role="tabpanel" aria-labelledby="modeP">
+    <div class="progress"><span>정답 <b id="pCnt">0</b> / <span id="pTot">32</span></span><div class="meter"><i id="pBar"></i></div></div>
+    <div id="pList"></div>
+  </div>
+
+  <!-- 모의 수행평가 -->
+  <div id="viewM" role="tabpanel" aria-labelledby="modeM" hidden>
+    <section class="card result" id="mRes" hidden aria-live="polite"></section>
+    <section class="card" id="mId">
+      <h2>학번과 이름을 입력하세요</h2>
+      <div class="idrow">
+        <label for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
+        <label for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
+      </div>
+      <p class="note">문항의 파일명·메뉴명·name 값은 시도할 때마다 바뀝니다. 제출하면 결과 화면을 캡처해서 제출하세요.</p>
+    </section>
+    <section class="card rule">
+      <h2>채점 기준 (실제 수행평가와 같음)</h2>
+      <div class="tablewrap">
+        <table>
+          <tr><th>정확히 쓴 코드</th><td>10개</td><td>9개</td><td>8개</td><td>7개</td><td>6개</td><td>5개</td><td>4개</td><td>3개</td><td>1~2개</td><td>0개</td></tr>
+          <tr><th>점수</th><td>100</td><td>95</td><td>90</td><td>85</td><td>80</td><td>75</td><td>70</td><td>65</td><td>60</td><td>55</td></tr>
+        </table>
+      </div>
+    </section>
+    <div id="mList"></div>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="in">
+    <div class="prog">
+      <div><b>모의 수행평가</b> · 걸린 시간 <b id="timer">00:00</b></div>
+      <div class="warn" id="warn" hidden></div>
+    </div>
+    <button class="btn big" type="button" id="submitBtn">제출하기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<div class="dup" id="dup" role="alertdialog" aria-labelledby="dupTitle" hidden>
+  <div class="box">
+    <h2 id="dupTitle">다른 창에서도 열려 있습니다</h2>
+    <p>이 연습 페이지는 한 번에 한 창에서만 풀 수 있습니다. 다른 창(탭)을 모두 닫고 이 페이지를 새로고침하세요.</p>
+  </div>
+</div>
+
+<script>
+/* ───────── 공통 도구 ───────── */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) {
+  var e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function mmss(ms) { var s = Math.floor(ms / 1000); return pad2(Math.floor(s / 60)) + ":" + pad2(s % 60); }
+function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function normSel(s) { return s.trim().toLowerCase().replace(/\s+/g, " "); }
+function normVal(v) {
+  v = v.trim().replace(/;+\s*$/, "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (/^0(px)?$/.test(v)) v = "0px";
+  return v;
+}
+function short(t) { t = t.replace(/\s+/g, " ").trim(); return t.length > 40 ? t.slice(0, 40) + "…" : t; }
+
+/* ───────── CSS 해석 ───────── */
+function parseDecls(body) {
+  var out = { decls: {}, issues: [], noSemi: false };
+  var chunks = body.split(";");
+  chunks.forEach(function (chunk, idx) {
+    var t = chunk.trim();
+    if (!t) return;
+    var c = (t.match(/:/g) || []).length;
+    if (c === 0) { out.issues.push(t.indexOf("=") >= 0 ? "콜론(:) 대신 등호(=)를 썼습니다." : "「" + short(t) + "」에 콜론(:)이 없습니다."); return; }
+    if (c > 1) { out.issues.push("세미콜론(;)이 빠져 두 줄이 하나로 이어졌습니다."); return; }
+    var k = t.indexOf(":");
+    var prop = normSel(t.slice(0, k)), val = t.slice(k + 1);
+    if (!val.trim()) { out.issues.push("값이 비어 있는 줄이 있습니다."); return; }
+    out.decls[prop] = normVal(val);
+    if (idx === chunks.length - 1) out.noSemi = true;
+  });
+  return out;
+}
+function parseSheet(text) {
+  var res = { rules: {}, issues: [] };
+  text = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  var i = 0, guard = 0;
+  while (guard++ < 100) {
+    var open = text.indexOf("{", i);
+    if (open < 0) {
+      var rest = text.slice(i).replace(/}/g, "").trim();
+      if (rest) res.issues.push("중괄호 { } 밖에 남은 코드가 있습니다.");
+      break;
+    }
+    var selRaw = text.slice(i, open);
+    if (selRaw.indexOf("}") >= 0) selRaw = selRaw.slice(selRaw.lastIndexOf("}") + 1);
+    var sel = normSel(selRaw);
+    var close = text.indexOf("}", open + 1), nextOpen = text.indexOf("{", open + 1);
+    var body, broken = false;
+    if (close < 0 || (nextOpen >= 0 && nextOpen < close)) {
+      broken = true;
+      var end = nextOpen >= 0 ? nextOpen : text.length;
+      var seg = text.slice(open + 1, end);
+      var cut = Math.max(seg.lastIndexOf(";"), seg.lastIndexOf("\n"));
+      if (nextOpen < 0 || cut < 0) cut = seg.length - 1;
+      body = seg.slice(0, cut + 1);
+      i = open + 1 + cut + 1;
+    } else { body = text.slice(open + 1, close); i = close + 1; }
+    if (!sel) { res.issues.push("선택자 없이 중괄호 { 가 시작됩니다."); continue; }
+    var d = parseDecls(body);
+    res.rules[sel] = { decls: d.decls, issues: d.issues, noSemi: d.noSemi, broken: broken };
+  }
+  return res;
+}
+
+/* ───────── 채점기 ───────── */
+// 값 비교 도우미
+function eqi(v) { return function (a) { return a.trim().toLowerCase() === v; }; }
+function hasClass(c) { return function (a) { return a.trim().split(/\s+/).indexOf(c) >= 0; }; }
+function goTo(file) {           // onclick="location.href='index.jsp'" 등 같은 뜻의 쓰기를 모두 인정
+  return function (a) {
+    var s = a.replace(/\s+/g, "").replace(/;+$/, "");
+    var m = s.match(/^(?:window\.)?location(?:\.href)?=(['"])([^'"]+)\1$/i);
+    return !!m && m[2] === file;
+  };
+}
+function cssVal(list) { return function (v) { return list.indexOf(v) >= 0; }; }
+
+// HTML/JSP 코드 채점: specs = [{tag, attrs:{이름: 값|함수}, text, close}] 또는 {anyOf:[...]}
+function checkHtml(raw, specs) {
+  var errs = [];
+  if (!raw.trim()) return ["아무것도 쓰지 않았습니다."];
+  if (raw.indexOf("<") < 0) return ["태그(< >)로 써야 합니다."];
+  var t = document.createElement("template");
+  t.innerHTML = raw;
+  var nodes = Array.prototype.filter.call(t.content.childNodes, function (n) {
+    return n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim());
+  });
+  if (nodes.some(function (n) { return n.nodeType === 3; })) errs.push("태그 바깥에 필요 없는 글자가 있습니다.");
+  var els = nodes.filter(function (n) { return n.nodeType === 1; });
+  if (els.length !== specs.length) {
+    // 닫는 태그가 빠져 다음 코드가 안으로 들어간 경우를 먼저 알려 준다
+    var closeErr = specs.some(function (s) { return needClose(s) && !hasCloseTag(raw, tagOf(s, raw)); });
+    if (closeErr) errs.push("닫는 태그가 빠졌습니다.");
+    else errs.push(els.length < specs.length ? "필요한 코드가 모두 있지 않습니다. (" + specs.length + "개 필요)" : "필요 없는 코드가 더 있습니다.");
+    return errs;
+  }
+  specs.forEach(function (s, i) {
+    var pre = specs.length > 1 ? "(" + (i + 1) + "번째 코드) " : "";
+    var alts = s.anyOf || [s];
+    var results = alts.map(function (a) { return checkEl(els[i], a, raw); });
+    if (results.some(function (e) { return !e.length; })) return;      // 하나라도 맞으면 정답
+    var k = 0;                                                          // 학생이 쓴 태그와 같은 쪽의 오류를 보여 준다
+    alts.forEach(function (a, j) { if (els[i].localName === a.tag) k = j; });
+    results[k].forEach(function (msg) { errs.push(pre + msg); });
+  });
+  return errs;
+}
+function tagOf(s, raw) { return s.anyOf ? s.anyOf[0].tag : s.tag; }
+function needClose(s) { return s.anyOf ? false : !!s.close; }
+function hasCloseTag(raw, tag) {
+  return new RegExp("<\\/\\s*" + esc(tag) + "\\s*>", "i").test(raw) || (tag.indexOf(":") > 0 && new RegExp("<" + esc(tag) + "[^>]*\\/\\s*>", "i").test(raw));
+}
+function checkEl(node, s, raw) {
+  var errs = [];
+  if (node.localName !== s.tag) { errs.push("태그 이름이 맞지 않습니다."); return errs; }
+  var miss = 0, wrong = 0, noq = 0;
+  Object.keys(s.attrs || {}).forEach(function (name) {
+    var want = s.attrs[name];
+    var got = node.getAttribute(name);
+    if (got === null) { miss++; return; }
+    var ok = typeof want === "function" ? want(got) : got.trim() === want;
+    if (!ok) wrong++;
+    else if (!new RegExp("\\s" + esc(name) + "\\s*=\\s*[\"']", "i").test(raw)) noq++;
+  });
+  if (miss) errs.push("필요한 속성이 빠졌거나 속성 이름의 철자가 틀렸습니다.");
+  if (wrong) errs.push("속성 값이 다릅니다. (파일명·글자·대소문자·따옴표 안의 내용을 확인)");
+  if (noq) errs.push("속성 값을 따옴표(\" \")로 감싸지 않았습니다.");
+  if (s.text != null && node.textContent.trim() !== s.text) errs.push("화면에 보이는 글자가 문제와 다릅니다.");
+  if (s.close && !hasCloseTag(raw, s.tag)) errs.push("닫는 태그가 빠졌습니다.");
+  return errs;
+}
+
+// CSS 채점: rules = [{sel, decl:[[속성, 값|함수]]}], 선택자 없이 속성만 써도 되는 문항은 bare:true
+function checkCss(raw, rules, bare) {
+  if (!raw.trim()) return ["아무것도 쓰지 않았습니다."];
+  var errs = [];
+  if (bare && raw.indexOf("{") < 0) {
+    var d = parseDecls(raw);
+    errs = errs.concat(d.issues);
+    if (d.noSemi) errs.push("끝에 세미콜론(;)이 빠졌습니다.");
+    declErrs(rules[0].decl, d.decls, errs);
+    return uniq(errs);
+  }
+  var p = parseSheet(raw);
+  errs = errs.concat(p.issues);
+  var known = {};
+  rules.forEach(function (r) {
+    var key = normSel(r.sel);
+    known[key] = true;
+    var got = p.rules[key];
+    if (!got) { errs.push("선택자가 없거나 선택자 철자가 다릅니다."); return; }
+    if (got.broken) errs.push("닫는 중괄호 } 가 빠졌습니다.");
+    errs = errs.concat(got.issues);
+    if (got.noSemi) errs.push("끝에 세미콜론(;)이 빠졌습니다.");
+    declErrs(r.decl, got.decls, errs);
+  });
+  Object.keys(p.rules).forEach(function (s) { if (!known[s]) errs.push("필요 없는 선택자가 있습니다. 선택자 철자를 확인하세요."); });
+  return uniq(errs);
+}
+function declErrs(want, got, errs) {
+  want.forEach(function (d) {
+    var g = got[d[0]];
+    if (g === undefined) { errs.push("필요한 속성이 빠졌거나 속성 이름의 철자가 틀렸습니다."); return; }
+    var ok = typeof d[1] === "function" ? d[1](g) : g === normVal(d[1]);
+    if (!ok) errs.push("속성 값이 다릅니다.");
+  });
+}
+function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+
+/* ───────── 문항 만들기 도우미 ───────── */
+var TABLE_CENTER = cssVal(["auto", "0 auto", "0px auto"]);
+function Qlink() { return { type: "html", spec: [{ tag: "link", attrs: { href: "style.css", rel: eqi("stylesheet") } }], hint: '<link href="__________" rel="__________">', rows: 1 }; }
+function Qinclude(f) { return { type: "html", spec: [{ tag: "jsp:include", attrs: { page: f }, close: true }], hint: '<jsp:include page="__________"></jsp:include>', rows: 1 }; }
+function Qa(text, file) { return { type: "html", spec: [{ tag: "a", attrs: { href: file }, text: text, close: true }], hint: '<a href="__________">__________</a>', rows: 1 }; }
+function QnavA() { return { type: "css", rules: [{ sel: "nav a", decl: [["text-decoration", "none"]] }], hint: "선택자 { 속성: 값; }  ← nav 안의 a를 고르는 선택자", rows: 3 }; }
+function Qh2() { return { type: "css", rules: [{ sel: "h2", decl: [["text-align", "center"]] }], hint: "h2 { 속성: 값; }", rows: 3 }; }
+function Qtable() { return { type: "css", rules: [{ sel: "table", decl: [["margin", TABLE_CENTER]] }], hint: "table { 속성: 값; }  ← 바깥 여백을 자동으로", rows: 3 }; }
+function QtdCenter() { return { type: "css", rules: [{ sel: ".td-center", decl: [["text-align", "center"]] }], hint: ".클래스이름 { 속성: 값; }", rows: 3 }; }
+function Qtext(name) { return { type: "html", spec: [{ tag: "input", attrs: { type: eqi("text"), name: name } }], hint: '<input type="____" name="__________">', rows: 1 }; }
+function btnSpec(kind, label) {        // 수행평가와 같이 input 태그만 정답
+  return { tag: "input", attrs: { type: eqi(kind), value: label } };
+}
+function Qbtn(kind, label) { return { type: "html", spec: [btnSpec(kind, label)], hint: '<input type="______" value="______">', rows: 1 }; }
+function homeSpec(label, file) {       // 수행평가: "input 태그 전체" → button 태그는 오답
+  return { tag: "input", attrs: { type: eqi("button"), value: label, onclick: goTo(file) } };
+}
+function Qblank(pre, post, ans, hint) { return { type: "blank", pre: pre, post: post, ans: ans, hint: hint }; }
+function checkBlank(raw, ans) {
+  var v = raw.trim();
+  if (!v) return ["빈칸을 채우지 않았습니다."];
+  if (/[<>=]/.test(v)) return ["빈칸에는 값만 씁니다. 태그나 속성 이름은 쓰지 않습니다."];
+  if (/["']/.test(v)) return ["따옴표는 이미 있습니다. 따옴표 없이 값만 쓰세요."];
+  return v.toLowerCase() === ans ? [] : ["값이 다릅니다."];
+}
+function Qhome(label, file) { return { type: "html", spec: [homeSpec(label, file)], hint: '<input type="______" value="______" onclick="location.href=\'__________\'">', rows: 1 }; }
+
+/* ───────── 학습지 32문항 ───────── */
+var PRACTICE = [
+  { part: "PART 1. 공통 JSP와 CSS 연결" },
+  { q: "header.jsp에서 style.css를 연결하는 link 태그를 작성하시오.", ctx: "<head>\n[ 여기 ]\n<meta charset=\"UTF-8\">\n</head>", item: Qlink() },
+  { q: "index.jsp에서 header.jsp를 불러오는 코드를 작성하시오.", ctx: "<body>\n[ 여기 ]\n<section>...</section>\n</body>", item: Qinclude("header.jsp") },
+  { q: "index.jsp에서 footer.jsp를 불러오는 코드를 작성하시오.", ctx: "<section>...</section>\n[ 여기 ]\n</body>", item: Qinclude("footer.jsp") },
+  { part: "PART 2. 페이지 연결" },
+  { q: "「학생목록」을 클릭하면 studentlist.jsp로 이동하도록 a 태그 전체를 작성하시오.", item: Qa("학생목록", "studentlist.jsp") },
+  { q: "「메뉴조회」를 클릭하면 menulist.jsp로 이동하도록 a 태그 전체를 작성하시오.", item: Qa("메뉴조회", "menulist.jsp") },
+  { q: "href의 역할로 알맞은 것을 고르시오.", item: { type: "mcq", opts: ["클릭했을 때 이동할 페이지(주소)를 지정한다.", "링크 글자의 색을 정한다.", "입력칸을 구분하는 이름을 정한다.", "CSS 파일의 종류를 알려 준다."], ans: 0 } },
+  { part: "PART 3. CSS 선택자와 화면 결과" },
+  { q: "nav 안의 링크 밑줄을 없애는 CSS를 선택자부터 작성하시오.", item: QnavA() },
+  { q: "h2 제목 글자를 가운데 정렬하는 CSS를 작성하시오.", item: Qh2() },
+  { q: "table 자체를 가운데 배치하는 CSS를 작성하시오.", item: Qtable() },
+  { q: "class=\"td-center\"가 적용된 셀의 내용을 가운데 정렬하는 CSS를 작성하시오.", item: QtdCenter() },
+  { q: "section이 화면 위쪽 100px 지점부터 시작하도록 하는 한 줄을 작성하시오. (속성: 값; 한 줄)", item: { type: "css", bare: true, rules: [{ sel: "section", decl: [["top", "100px"]] }], hint: "속성: 값;", rows: 1 } },
+  { q: "footer를 화면 아래쪽에 고정할 때 사용하는 position과 bottom 코드를 작성하시오. (두 줄)", item: { type: "css", bare: true, rules: [{ sel: "footer", decl: [["position", "fixed"], ["bottom", "0px"]] }], hint: "position: ______;\nbottom: ______;", rows: 2 } },
+  { part: "PART 4. input과 table 코드" },
+  { q: "이름을 입력받는 입력칸을 작성하시오. name은 student_name으로 한다.", item: Qtext("student_name") },
+  { q: "「등록」 전송 버튼을 작성하시오.", item: Qbtn("submit", "등록") },
+  { q: "「다시작성」 초기화 버튼을 작성하시오.", item: Qbtn("reset", "다시작성") },
+  { q: "[빈칸] 이름 입력칸을 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" name="student_name">', "text", "글자를 입력받는 입력칸의 type") },
+  { q: "[빈칸] 입력 내용을 지우는 「다시작성」 버튼을 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" value="다시작성">', "reset", "입력 내용을 모두 지우는 버튼의 type") },
+  { q: "「홈으로」를 클릭하면 index.jsp로 이동하는 버튼을 input 태그 전체로 작성하시오.", item: Qhome("홈으로", "index.jsp") },
+  { q: "colspan=\"2\"의 의미로 알맞은 것을 고르시오.", item: { type: "mcq", opts: ["세로로 칸 2개를 하나로 합친다.", "가로로 칸 2개를 하나로 합친다.", "표의 테두리 두께를 2로 한다.", "칸 2개를 새로 추가한다."], ans: 1 } },
+  { part: "PART 5. 종합 적용" },
+  { q: "「도서목록」을 클릭하면 booklist.jsp로 이동하도록 a 태그 전체를 작성하시오.", item: Qa("도서목록", "booklist.jsp") },
+  { q: "다음 조건을 모두 만족하는 CSS를 작성하시오: h2 가운데 정렬, table 가운데 배치.", item: { type: "css", rules: [{ sel: "h2", decl: [["text-align", "center"]] }, { sel: "table", decl: [["margin", TABLE_CENTER]] }], hint: "h2 { ... }\ntable { ... }", rows: 4 } },
+  { q: "버튼이 있는 td에 class=\"td-center\"를 적용한 한 줄을 작성하시오. (여는 td 태그 한 줄)", item: { type: "html", spec: [{ tag: "td", attrs: { "class": hasClass("td-center") } }], hint: '<td colspan="2" class="__________">', rows: 1 } },
+  { q: "header.jsp를 불러온 뒤 section을 시작하는 두 줄의 코드를 작성하시오.", item: { type: "html", spec: [{ tag: "jsp:include", attrs: { page: "header.jsp" }, close: true }, { tag: "section" }], hint: '<jsp:include page="__________"></jsp:include>\n<______>', rows: 2 } },
+  { q: "다음 세 버튼을 순서대로 작성하시오: 저장(submit), 초기화(reset), 홈으로(type 「button」 + onclick, index.jsp로 이동). 모두 input 태그로 쓰시오.", item: { type: "html", spec: [btnSpec("submit", "저장"), btnSpec("reset", "초기화"), homeSpec("홈으로", "index.jsp")], hint: '<input type="______" value="저장">\n<input type="______" value="초기화">\n<input type="______" value="홈으로" onclick="location.href=\'______\'">', rows: 3 } },
+  { part: "PART 6. 미니 모의평가 — 10개 코드" },
+  { q: "style.css 연결", item: Qlink() },
+  { q: "header.jsp include", item: Qinclude("header.jsp") },
+  { q: "cafe.jsp로 이동하는 「카페메뉴」 링크", item: Qa("카페메뉴", "cafe.jsp") },
+  { q: "nav a 밑줄 제거 CSS", item: QnavA() },
+  { q: "h2 가운데 정렬 CSS", item: Qh2() },
+  { q: "table 가운데 배치 CSS", item: Qtable() },
+  { q: ".td-center 가운데 정렬 CSS", item: QtdCenter() },
+  { q: "상품명 text 입력칸 (name=\"product_name\")", item: Qtext("product_name") },
+  { q: "「상품등록」 submit 버튼", item: Qbtn("submit", "상품등록") },
+  { q: "index.jsp로 이동하는 「홈으로」 버튼 (input 태그 전체)", item: Qhome("홈으로", "index.jsp") },
+  { part: "PART 7. 실전 형식 10문항 — 학교 체육시설 예약 관리 프로그램" },
+  { q: "header.jsp에서 style.css 파일을 연결하는 코드를 작성하시오.", ctx: "<head>\n[ 여기 ]\n<meta charset=\"UTF-8\">\n</head>", item: Qlink() },
+  { q: "index.jsp에서 header.jsp를 불러오는 코드를 작성하시오.", ctx: "<body>\n[ 여기 ]\n<section>...</section>\n</body>", item: Qinclude("header.jsp") },
+  { q: "nav에서 「예약현황」을 클릭하면 reservationlist.jsp로 이동하도록 a 태그 전체를 작성하시오.", ctx: "<nav>\n[ 여기 ]\n</nav>", item: Qa("예약현황", "reservationlist.jsp") },
+  { q: "nav 안의 링크 밑줄을 제거하도록 CSS를 선택자부터 작성하시오.", item: QnavA() },
+  { q: "h2 제목을 가운데 정렬하도록 CSS를 선택자부터 작성하시오.", item: Qh2() },
+  { q: "table 자체를 페이지의 가운데에 배치하도록 CSS를 선택자부터 작성하시오.", item: Qtable() },
+  { q: "버튼이 들어 있는 td에 td-center 클래스를 적용하고, 해당 셀의 내용을 가운데 정렬하려고 한다. CSS를 선택자부터 작성하시오.", item: QtdCenter() },
+  { q: "시설명을 입력받기 위한 input 태그를 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" name="facility_name">', "text", "글자를 입력받는 입력칸의 type") },
+  { q: "예약 내용을 전송하는 「예약등록」 버튼을 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" value="예약등록">', "submit", "입력 내용을 보내는 버튼의 type") },
+  { q: "「홈으로」 버튼을 클릭하면 index.jsp로 이동하도록 input 태그 전체를 작성하시오.", item: Qhome("홈으로", "index.jsp") }
+];
+
+function grade(item, raw) {
+  if (item.type === "html") return checkHtml(raw, item.spec);
+  if (item.type === "css") return checkCss(raw, item.rules, item.bare);
+  if (item.type === "blank") return checkBlank(raw, item.ans);
+  return [];
+}
+
+/* ───────── 입력칸 ───────── */
+function makeTA(id, rows, label) {
+  var ta = el("textarea", "code");
+  ta.id = id; ta.rows = Math.max(1, rows || 1) + (rows > 1 ? 1 : 0);
+  ta.setAttribute("spellcheck", "false"); ta.setAttribute("autocomplete", "off");
+  ta.setAttribute("autocorrect", "off"); ta.setAttribute("autocapitalize", "off");
+  ta.setAttribute("aria-label", label);
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Tab" && !e.shiftKey) {
+      e.preventDefault();
+      var s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(en);
+      ta.selectionStart = ta.selectionEnd = s + 4;
+    }
+  });
+  return ta;
+}
+function ctxPre(text) {
+  var pre = el("pre", "ctx");
+  text.split("[ 여기 ]").forEach(function (part, i, arr) {
+    pre.appendChild(document.createTextNode(part));
+    if (i < arr.length - 1) pre.appendChild(el("span", "blank", "____________ ← 여기에 들어갈 코드"));
+  });
+  return pre;
+}
+function blankLine(item, id, label) {
+  var pre = el("pre", "ctx fill");
+  pre.appendChild(document.createTextNode(item.pre));
+  var inp = document.createElement("input");
+  inp.className = "inl"; inp.id = id; inp.type = "text";
+  inp.setAttribute("autocomplete", "off"); inp.setAttribute("autocapitalize", "off"); inp.setAttribute("spellcheck", "false");
+  inp.setAttribute("aria-label", label);
+  pre.appendChild(inp);
+  pre.appendChild(document.createTextNode(item.post));
+  return { box: pre, input: inp };
+}
+function renderErrs(box, errs) {
+  box.innerHTML = "";
+  if (!errs.length) { box.className = "fb ok"; box.textContent = "✓ 정답입니다."; return; }
+  box.className = "fb ng";
+  box.appendChild(document.createTextNode("✗ 다시 확인하세요."));
+  var ul = el("ul");
+  errs.forEach(function (m) { ul.appendChild(el("li", null, m)); });
+  box.appendChild(ul);
+}
+
+/* ───────── 학습지 연습 화면 ───────── */
+var pSolved = {}, pTotal = 0;
+function buildPractice() {
+  var list = $("pList"), n = 0;
+  PRACTICE.forEach(function (P) {
+    if (P.part) { list.appendChild(el("div", "part", P.part)); return; }
+    n++;
+    var no = n, it = P.item;
+    var card = el("section", "card q");
+    var qh = el("div", "qh");
+    qh.appendChild(el("span", "no", no + "."));
+    qh.appendChild(el("span", "qt", P.q));
+    var badge = el("span", "badge", "");
+    qh.appendChild(badge);
+    card.appendChild(qh);
+    if (P.ctx) card.appendChild(ctxPre(P.ctx));
+    var fb = el("div", "fb");
+    var row = el("div", "row");
+    var check = el("button", "btn", "확인");
+    check.type = "button";
+    function done(ok) {
+      if (ok && !pSolved[no]) { pSolved[no] = true; card.classList.add("solved"); badge.textContent = "✓ 정답"; updateP(); }
+    }
+    if (it.type === "mcq") {
+      var opts = el("div", "opts");
+      it.opts.forEach(function (o, i) {
+        var lab = el("label", "opt");
+        var r = document.createElement("input");
+        r.type = "radio"; r.name = "pq" + no; r.value = i; r.id = "pq" + no + "_" + i;
+        lab.appendChild(r);
+        lab.appendChild(el("span", null, o));
+        opts.appendChild(lab);
+      });
+      card.appendChild(opts);
+      check.addEventListener("click", function () {
+        var c = card.querySelector("input:checked");
+        if (!c) { renderErrs(fb, ["보기를 하나 고르세요."]); return; }
+        var ok = +c.value === it.ans;
+        renderErrs(fb, ok ? [] : ["다시 생각해 보세요."]);
+        done(ok);
+      });
+      row.appendChild(check);
+    } else {
+      var ta;
+      if (it.type === "blank") { var bl = blankLine(it, "pt" + no, no + "번 빈칸"); card.appendChild(bl.box); ta = bl.input; }
+      else { ta = makeTA("pt" + no, it.rows, no + "번 답"); card.appendChild(ta); }
+      var hintBtn = el("button", "btn ghost", "힌트 보기");
+      hintBtn.type = "button";
+      var hint = el("div", "hint");
+      hint.hidden = true;
+      hint.appendChild(document.createTextNode(it.type === "blank" ? "힌트: " : "코드 틀: "));
+      hint.appendChild(el("code", null, it.hint));
+      hintBtn.addEventListener("click", function () { hint.hidden = !hint.hidden; hintBtn.textContent = hint.hidden ? "힌트 보기" : "힌트 닫기"; });
+      check.addEventListener("click", function () {
+        var errs = grade(it, ta.value);
+        renderErrs(fb, errs);
+        done(!errs.length);
+      });
+      row.appendChild(check);
+      row.appendChild(hintBtn);
+      card.appendChild(row);
+      card.appendChild(hint);
+      card.appendChild(fb);
+      list.appendChild(card);
+      return;
+    }
+    card.appendChild(row);
+    card.appendChild(fb);
+    list.appendChild(card);
+  });
+  pTotal = n;
+  $("pTot").textContent = n;
+  $("pModeSub").textContent = n + "문항 · 한 문항씩 바로 확인 · 힌트 있음";
+}
+function updateP() {
+  var c = Object.keys(pSolved).length;
+  $("pCnt").textContent = c;
+  $("pBar").style.width = (c / pTotal * 100) + "%";
+}
+
+/* ───────── 모의 수행평가 ───────── */
+var LINKS = [["예약현황", "reservationlist.jsp"], ["예약현황", "reservationlist.jsp"], ["학생목록", "studentlist.jsp"], ["메뉴조회", "menulist.jsp"], ["도서목록", "booklist.jsp"], ["카페메뉴", "cafe.jsp"],
+  ["회원목록", "memberlist.jsp"], ["상품목록", "productlist.jsp"], ["접수목록", "applylist.jsp"], ["예약조회", "reservelist.jsp"],
+  ["강좌목록", "courselist.jsp"], ["주문현황", "orderstatus.jsp"]];
+var FIELDS = [["시설명", "facility_name"], ["시설명", "facility_name"], ["이름", "student_name"], ["상품명", "product_name"], ["도서명", "book_name"], ["회원이름", "member_name"],
+  ["메뉴명", "menu_name"], ["연락처", "phone"], ["강좌명", "course_name"], ["주소", "address"]];
+var SUBMITS = [["submit", "예약등록"], ["submit", "예약등록"], ["submit", "등록"], ["submit", "저장"], ["submit", "상품등록"], ["submit", "회원등록"], ["reset", "다시작성"], ["reset", "다시쓰기"]];
+var HOMES = [["홈으로", "index.jsp"], ["홈으로", "index.jsp"], ["홈으로", "index.jsp"], ["메인으로", "index.jsp"], ["목록으로", "list.jsp"]];
+var m = { items: [], submitted: false, start: null, attempt: 0 };
+
+function eulReul(w) {   // 받침이 있으면 "을", 없으면 "를"
+  var c = w.charCodeAt(w.length - 1);
+  if (c < 0xac00 || c > 0xd7a3) return "을(를)";
+  return (c - 0xac00) % 28 ? "을" : "를";
+}
+function makeMock() {
+  var inc = pick(["header.jsp", "footer.jsp"]);
+  var ln = pick(LINKS), fd = pick(FIELDS), sb = pick(SUBMITS), hm = pick(HOMES);
+  var incCtx = inc === "header.jsp" ? "<body>\n[ 여기 ]\n<section>...</section>\n</body>" : "<section>...</section>\n[ 여기 ]\n</body>";
+  var sbWhat = sb[0] === "submit" ? "입력 내용을 전송하는" : "입력 내용을 모두 지우는";
+  return [
+    { q: "header.jsp에서 style.css 파일을 연결하는 코드를 작성하시오.", ctx: "<head>\n[ 여기 ]\n<meta charset=\"UTF-8\">\n</head>", item: Qlink() },
+    { q: "index.jsp에서 " + inc + "를 불러오는 코드를 작성하시오.", ctx: incCtx, item: Qinclude(inc) },
+    { q: "nav에서 「" + ln[0] + "」" + eulReul(ln[0]) + " 클릭하면 " + ln[1] + "로 이동하도록 a 태그 전체를 작성하시오.", ctx: "<nav>\n[ 여기 ]\n</nav>", item: Qa(ln[0], ln[1]) },
+    { q: "nav 안의 링크 밑줄을 제거하도록 CSS를 선택자부터 작성하시오.", item: QnavA() },
+    { q: "h2 제목을 가운데 정렬하도록 CSS를 선택자부터 작성하시오.", item: Qh2() },
+    { q: "table 자체를 페이지의 가운데에 배치하도록 CSS를 선택자부터 작성하시오.", item: Qtable() },
+    { q: "버튼이 들어 있는 td에 td-center 클래스를 적용하고, 해당 셀의 내용을 가운데 정렬하려고 한다. CSS를 선택자부터 작성하시오.", item: QtdCenter() },
+    { q: fd[0] + eulReul(fd[0]) + " 입력받기 위한 input 태그를 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" name="' + fd[1] + '">', "text") },
+    { q: sbWhat + " 「" + sb[1] + "」 버튼을 완성하시오. 빈칸에는 값만 쓰시오.", item: Qblank('<input type="', '" value="' + sb[1] + '">', sb[0]) },
+    { q: "「" + hm[0] + "」 버튼을 클릭하면 " + hm[1] + "로 이동하도록 input 태그 전체를 작성하시오.", item: Qhome(hm[0], hm[1]) }
+  ];
+}
+function buildMock() {
+  m.items = makeMock();
+  m.submitted = false; m.start = null;
+  var list = $("mList");
+  list.innerHTML = "";
+  m.items.forEach(function (P, i) {
+    var card = el("section", "card q");
+    card.id = "mq" + i;
+    var qh = el("div", "qh");
+    qh.appendChild(el("span", "no", (i + 1) + "."));
+    qh.appendChild(el("span", "qt", P.q));
+    card.appendChild(qh);
+    if (P.ctx) card.appendChild(ctxPre(P.ctx));
+    var ta;
+    if (P.item.type === "blank") { var bl = blankLine(P.item, "mt" + i, (i + 1) + "번 빈칸"); card.appendChild(bl.box); ta = bl.input; }
+    else { ta = makeTA("mt" + i, P.item.rows, (i + 1) + "번 답"); card.appendChild(ta); }
+    ta.addEventListener("input", function () { if (!m.start) m.start = Date.now(); });
+    var fb = el("div", "fb");
+    fb.hidden = true;
+    card.appendChild(fb);
+    list.appendChild(card);
+    P.ta = ta; P.fb = fb; P.card = card;
+  });
+  $("mRes").hidden = true;
+  $("sid").disabled = false; $("sname").disabled = false;
+  updateBar();
+}
+function convert(n) { if (n >= 10) return 100; if (n === 0) return 55; if (n <= 2) return 60; return 100 - (10 - n) * 5; }
+
+function submitMock() {
+  if (m.submitted) return;
+  var sid = $("sid").value.trim(), sname = $("sname").value.trim();
+  $("sid").classList.toggle("need", !sid);
+  $("sname").classList.toggle("need", !sname);
+  if (!sid || !sname) {
+    var w = $("warn"); w.textContent = "학번과 이름을 먼저 입력하세요."; w.hidden = false;
+    $("mId").scrollIntoView({ block: "start" });
+    (!sid ? $("sid") : $("sname")).focus();
+    return;
+  }
+  m.submitted = true;
+  m.attempt++;
+  var correct = 0, ox = [];
+  m.items.forEach(function (P) {
+    var errs = grade(P.item, P.ta.value);
+    var ok = !errs.length;
+    if (ok) correct++;
+    ox.push(ok);
+    P.ta.disabled = true;
+    P.card.classList.add(ok ? "okq" : "ngq");
+    P.fb.hidden = false;
+    renderErrs(P.fb, errs);
+  });
+  var now = new Date();
+  var res = $("mRes");
+  res.innerHTML = "";
+  res.appendChild(el("p", "rtitle", "2차 수행평가 대비 · 모의 수행평가 결과"));
+  var who = el("p", "who");
+  who.appendChild(el("span", null, sid));
+  who.appendChild(document.createTextNode(" "));
+  who.appendChild(el("span", null, sname));
+  res.appendChild(who);
+  res.appendChild(el("div", "score", convert(correct) + "점"));
+  res.appendChild(el("p", "rdetail", "코드 10개 중 " + correct + "개 정확히 작성 · 걸린 시간 " + mmss(m.start ? now - m.start : 0)));
+  var g = el("div", "ox");
+  ox.forEach(function (ok, i) {
+    var c = el("div", ok ? "o" : "x");
+    c.appendChild(document.createTextNode(String(i + 1)));
+    c.appendChild(el("b", null, ok ? "O" : "X"));
+    g.appendChild(c);
+  });
+  res.appendChild(g);
+  res.appendChild(el("p", "meta", "제출 " + now.getFullYear() + "-" + pad2(now.getMonth() + 1) + "-" + pad2(now.getDate()) + " " + pad2(now.getHours()) + ":" + pad2(now.getMinutes()) + " · " + m.attempt + "번째 응시"));
+  var again = el("button", "btn big", "새 문제로 다시 풀기");
+  again.type = "button";
+  again.addEventListener("click", function () { buildMock(); $("viewM").scrollIntoView({ block: "start" }); });
+  res.appendChild(again);
+  res.hidden = false;
+  $("sid").disabled = true; $("sname").disabled = true;
+  updateBar();
+  res.scrollIntoView({ block: "start" });
+}
+
+/* ───────── 탭·바·잠금 ───────── */
+var mode = "P";
+function setMode(k) {
+  mode = k;
+  $("modeP").setAttribute("aria-selected", k === "P" ? "true" : "false");
+  $("modeM").setAttribute("aria-selected", k === "M" ? "true" : "false");
+  $("viewP").hidden = k !== "P";
+  $("viewM").hidden = k !== "M";
+  updateBar();
+}
+function updateBar() {
+  $("bar").hidden = !(mode === "M" && !m.submitted);
+  $("timer").textContent = mmss(m.start ? Date.now() - m.start : 0);
+}
+setInterval(function () { if (mode === "M" && !m.submitted) $("timer").textContent = mmss(m.start ? Date.now() - m.start : 0); }, 1000);
+
+var toastT = null;
+function blockInput(e) {
+  e.preventDefault();
+  var t = $("toast");
+  t.textContent = "복사·붙여넣기는 쓸 수 없습니다. 직접 입력하세요.";
+  t.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { t.hidden = true; }, 2200);
+}
+function lockDuplicate() {
+  if (!$("dup").hidden) return;
+  $("pList").innerHTML = ""; pSolved = {}; buildPractice(); updateP();
+  buildMock();
+  $("dup").hidden = false;
+  $("bar").hidden = true;
+}
+function watchOtherWindows() {
+  var me = Math.random().toString(36).slice(2), send;
+  function onMsg(x) { if (!x || x.id === me) return; if (x.type === "hello") send({ type: "here", id: me }); lockDuplicate(); }
+  var ch = null;
+  try { ch = new BroadcastChannel("exam2-prep-practice"); } catch (e) { ch = null; }
+  if (ch) { ch.onmessage = function (e) { onMsg(e.data); }; send = function (x) { try { ch.postMessage(x); } catch (e) {} }; }
+  else {
+    window.addEventListener("storage", function (e) { if (e.key === "exam2-prep-practice" && e.newValue) { try { onMsg(JSON.parse(e.newValue)); } catch (x) {} } });
+    send = function (x) { try { x.t = Date.now(); localStorage.setItem("exam2-prep-practice", JSON.stringify(x)); } catch (e) {} };
+  }
+  send({ type: "hello", id: me });
+}
+
+(function init() {
+  buildPractice();
+  buildMock();
+  $("modeP").addEventListener("click", function () { setMode("P"); });
+  $("modeM").addEventListener("click", function () { setMode("M"); });
+  $("submitBtn").addEventListener("click", submitMock);
+  ["sid", "sname"].forEach(function (id) { $(id).addEventListener("input", function () { this.classList.remove("need"); $("warn").hidden = true; }); });
+  ["copy", "cut", "paste", "drop", "dragstart"].forEach(function (t) { document.addEventListener(t, blockInput, true); });
+  document.addEventListener("beforeinput", function (e) { if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType || "")) blockInput(e); }, true);
+  document.addEventListener("contextmenu", function (e) { if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) e.preventDefault(); }, true);
+  setMode("P");
+  watchOtherWindows();
+})();
+</script>
+<script src="../../assets/config.js"></script>
+<script src="../../assets/common.js"></script>
+</body>
+</html>

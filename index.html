@@ -2,115 +2,100 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>화면구현 수업 자료</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화면구현 연습실</title>
+<link rel="stylesheet" href="assets/common.css">
 <style>
-/* 레이아웃: 한 열 목록 — 머리말 → 단원별 자료 카드(풀 순서대로) */
-:root {
-  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
-  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
-  --code-bg: #1d2628; --code-text: #e6efef;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
-    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
-    --code-bg: #0c1112; --code-text: #e6efef;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
-  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
-  --code-bg: #0c1112; --code-text: #e6efef;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0; background: var(--bg); color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
-  line-height: 1.6; font-size: 16px; word-break: keep-all; overflow-wrap: anywhere;
-}
-.wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
-.head { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 22px 20px; margin-bottom: 24px; }
-.head .path { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 13px; color: #7fd6cf; margin: 0 0 6px; }
-.head h1 { margin: 0 0 6px; font-size: 24px; text-wrap: balance; }
-.head p { margin: 0; color: #b9c9cb; font-size: 15px; }
-h2 { font-size: 15px; letter-spacing: .04em; color: var(--sub); margin: 0 0 10px; }
-.list { display: grid; gap: 12px; margin-bottom: 28px; }
-.item {
-  display: grid; grid-template-columns: 44px 1fr auto; gap: 14px; align-items: center;
-  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
-  color: inherit; text-decoration: none;
-}
-.item:hover { border-color: var(--accent); }
-.item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.num {
-  width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); color: var(--accent);
-  display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px;
-}
-.body { min-width: 0; }
-.body h3 { margin: 0; font-size: 17px; }
-.body p { margin: 2px 0 0; font-size: 14px; color: var(--sub); }
-.tag { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); margin-top: 4px; }
-.go { font-weight: 700; color: var(--accent); white-space: nowrap; font-size: 15px; }
-@media (max-width: 480px) {
-  .item { grid-template-columns: 40px 1fr; }
-  .num { width: 40px; height: 40px; }
-  .go { grid-column: 2; }
-}
-.foot { font-size: 13px; color: var(--sub); border-top: 1px solid var(--line); padding-top: 14px; }
+.login { max-width: 460px; margin: 40px auto 0; }
+.login h1 { text-align: center; }
+.login .lead { text-align: center; }
+.login form { display: grid; gap: 12px; }
+.steps { display: grid; gap: 12px; }
+.step { display: grid; grid-template-columns: 48px 1fr auto; gap: 14px; align-items: center; text-decoration: none; color: inherit; }
+.step:hover { border-color: var(--accent); }
+.step .n { width: 48px; height: 48px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; }
+.step h3 { margin: 0; font-size: 17px; }
+.step p { margin: 2px 0 0; font-size: 14px; color: var(--sub); }
+.step .st { font-size: 13px; font-weight: 700; color: var(--ok); margin-top: 4px; }
+.step .go { font-weight: 700; color: var(--accent); white-space: nowrap; }
+@media (max-width: 480px) { .step { grid-template-columns: 40px 1fr; } .step .n { width: 40px; height: 40px; } .step .go { grid-column: 2; } }
+.hello { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+.hello .path { font-size: 13px; color: var(--code-key); margin: 0 0 4px; }
+.hello h1 { color: #fff; }
+.hello p { margin: 0; color: #b9c6d8; font-size: 15px; }
 </style>
 </head>
-<body>
-<div class="wrap">
-  <header class="head">
-    <p class="path">project / style.css · header.jsp · footer.jsp</p>
-    <h1>응용프로그래밍 화면구현 수업 자료</h1>
-    <p>JSP · HTML · CSS 화면구현 형성평가와 코드 직접 입력 연습입니다. 선생님이 안내한 순서대로 푸세요.</p>
-  </header>
+<body data-wc-page data-wc-home>
+<main class="wrap">
+  <!-- 입장 -->
+  <section class="login" id="login" hidden>
+    <h1>화면구현 연습실</h1>
+    <p class="lead">학번과 이름을 입력하고 시작하세요.</p>
+    <form class="card" id="loginForm">
+      <label class="field" for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
+      <label class="field" for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
+      <div class="warnbox" id="loginWarn" hidden></div>
+      <button class="btn big" type="submit">시작하기</button>
+      <p class="note">입력한 학번과 이름은 모든 화면의 오른쪽 위에 표시되고, 연습 기록과 함께 이 컴퓨터의 브라우저에만 저장됩니다.</p>
+    </form>
+  </section>
 
-  <h2>형성평가와 연습 (위에서부터 차례로)</h2>
-  <div class="list">
-    <a class="item" href="quiz-basic/">
-      <div class="num">1</div>
-      <div class="body">
-        <h3>화면구현 기초 형성평가</h3>
-        <p>jsp:include, form, a href, link, value, colspan, table 구조</p>
-        <span class="tag">4지선다 10문항</span>
-      </div>
-      <span class="go">시작 →</span>
-    </a>
-    <a class="item" href="quiz-style-css/">
-      <div class="num">2</div>
-      <div class="body">
-        <h3>style.css 형성평가</h3>
-        <p>position, top, line-height, margin과 padding, class 선택자</p>
-        <span class="tag">4지선다 20문항 · 학번·이름 입력</span>
-      </div>
-      <span class="go">시작 →</span>
-    </a>
-    <a class="item" href="style-css-practice/">
-      <div class="num">3</div>
-      <div class="body">
-        <h3>style.css 직접 입력 연습</h3>
-        <p>값 채우기 → 설명 보고 쓰기 → 속성 쓰기 → 백지 쓰기</p>
-        <span class="tag">4단계 · 단계마다 100점 인증</span>
-      </div>
-      <span class="go">시작 →</span>
-    </a>
-    <a class="item" href="quiz-jsp-pages/">
-      <div class="num">4</div>
-      <div class="body">
-        <h3>JSP 페이지 구성 형성평가</h3>
-        <p>header.jsp(nav), footer.jsp, 등록·목록·수정 화면과 style.css</p>
-        <span class="tag">4지선다 20문항 · 학번·이름 입력</span>
-      </div>
-      <span class="go">시작 →</span>
-    </a>
-  </div>
-
-  <p class="foot">결과 화면은 캡처해서 클래스룸에 제출하세요. 페이지를 새로고침하면 처음부터 다시 풀어야 합니다.</p>
-</div>
+  <!-- 홈 -->
+  <section id="home" hidden>
+    <div class="hello">
+      <p class="path mono">webclass / style.css · header.jsp · footer.jsp · index.jsp</p>
+      <h1 id="hi"></h1>
+      <p>오늘도 위에서부터 차례로 하세요. 손이 코드를 기억할 때까지 직접 쓰는 것이 목표입니다.</p>
+    </div>
+    <h2>오늘의 순서</h2>
+    <div class="steps">
+      <a class="card step" href="typing/index.html"><div class="n">1</div><div><h3>타자 연습</h3><p>수업 코드에 나오는 낱말 → 기호 → 코드 한 줄. 타수와 정확도를 잽니다.</p><div class="st" id="st1"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="code/index.html"><div class="n">2</div><div><h3>코드 보고 쓰기</h3><p>style.css와 JSP 파일을 한 줄씩 보고 따라 씁니다.</p><div class="st" id="st2"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="code/index.html"><div class="n">3</div><div><h3>코드 외워 쓰기</h3><p>코드는 가리고 설명만 보고 씁니다. 보고 쓰기를 끝낸 파일부터 도전하세요.</p><div class="st" id="st3"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="quiz/index.html"><div class="n">4</div><div><h3>형성평가</h3><p>배운 내용을 문제로 확인합니다.</p><div class="st" id="st4"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="report/index.html"><div class="n">5</div><div><h3>내 과제 현황 제출</h3><p>오늘 한 활동이 표 한 장으로 정리됩니다. 화면을 캡처해서 제출하세요.</p><div class="st" id="st5"></div></div><span class="go">보기 →</span></a>
+    </div>
+  </section>
+</main>
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+(function () {
+  function show() {
+    var u = WC.user();
+    document.getElementById("login").hidden = !!u;
+    document.getElementById("home").hidden = !u;
+    if (!u) return;
+    document.getElementById("hi").textContent = u.name + " 학생, 반갑습니다.";
+    var rec = WC.records(), today = WC.today(), t = { typing: 0, see: 0, mem: 0, quiz: 0, all: 0 }, bestSpeed = 0;
+    Object.keys(rec).forEach(function (id) {
+      var r = rec[id], isToday = WC.today(new Date(r.lastTs)) === today;
+      if (!isToday) return;
+      t.all++;
+      if (id.indexOf("typing:") === 0) { t.typing++; bestSpeed = Math.max(bestSpeed, r.best); }
+      else if (id.indexOf("code:") === 0 && /:1$/.test(id)) t.see++;
+      else if (id.indexOf("code:") === 0 && /:2$/.test(id)) t.mem++;
+      else if (id.indexOf("quiz:") === 0) t.quiz++;
+    });
+    function set(id, txt) { document.getElementById(id).textContent = txt; }
+    set("st1", t.typing ? "오늘 " + t.typing + "단계 연습 · 최고 " + bestSpeed + "타" : "");
+    set("st2", t.see ? "오늘 " + t.see + "개 파일 완료" : "");
+    set("st3", t.mem ? "오늘 " + t.mem + "개 파일 완료" : "");
+    set("st4", t.quiz ? "오늘 " + t.quiz + "개 평가 채점" : "");
+    set("st5", t.all ? "오늘 기록 " + t.all + "개" : "");
+  }
+  document.getElementById("loginForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var sid = document.getElementById("sid"), name = document.getElementById("sname"), w = document.getElementById("loginWarn");
+    var s = sid.value.trim(), n = name.value.trim();
+    sid.classList.toggle("need", !s); name.classList.toggle("need", !n);
+    if (!s || !n) { w.textContent = "학번과 이름을 모두 입력하세요."; w.hidden = false; (!s ? sid : name).focus(); return; }
+    if (!/^[0-9]{3,10}$/.test(s)) { w.textContent = "학번은 숫자로만 입력하세요. (예: 10315)"; w.hidden = false; sid.classList.add("need"); sid.focus(); return; }
+    WC.setUser(s, n);
+    location.reload();
+  });
+  show();
+})();
+</script>
 </body>
 </html>

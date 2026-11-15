@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>수행평가 대비 최종 점검</title>
+<style>
+/* 레이아웃: 한 열 흐름 — 학번·이름 → 탭(형성평가 20 / 최종평가 10) → 문항 카드, 최종평가는 하단 고정 제출 바 */
+:root {
+  --bg: #f3f6f6; --card: #ffffff; --text: #1a2426; --sub: #57666a; --line: #d6dfe0;
+  --accent: #0f7b7a; --accent-soft: #e2f2f1; --on-accent: #ffffff;
+  --ok: #1d8a4a; --ok-soft: #e4f5ea; --ng: #c93a3a; --ng-soft: #fbe9e9; --mid: #b77300; --mid-soft: #fbf1df;
+  --code-bg: #1d2628; --code-text: #e6efef; --code-sel: #7fd6cf; --code-line: #3a4a4d;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+    --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+    --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --mid: #e3a73a; --mid-soft: #3a3020;
+    --code-bg: #0c1112; --code-text: #e6efef; --code-sel: #7fd6cf; --code-line: #2a3739;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121819; --card: #1b2325; --text: #e3eaeb; --sub: #9fb0b3; --line: #314043;
+  --accent: #4cc6bf; --accent-soft: #1d3436; --on-accent: #0d1a1b;
+  --ok: #4cc27c; --ok-soft: #1c3326; --ng: #ef6b6b; --ng-soft: #3a2222; --mid: #e3a73a; --mid-soft: #3a3020;
+  --code-bg: #0c1112; --code-text: #e6efef; --code-sel: #7fd6cf; --code-line: #2a3739;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  line-height: 1.6; font-size: 16px; word-break: keep-all; overflow-wrap: anywhere;
+}
+code, pre, textarea.code { font-family: Consolas, "D2Coding", Menlo, monospace; }
+.wrap { max-width: 820px; margin: 0 auto; padding: 20px 16px 120px; }
+.top h1 { font-size: 22px; margin: 4px 0 2px; text-wrap: balance; }
+.top p { margin: 0 0 16px; color: var(--sub); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.card h2 { font-size: 16px; margin: 0 0 8px; }
+/* 학번·이름 */
+.idrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.idrow label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; font-weight: 600; min-width: 0; }
+.idrow input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--bg); color: var(--text); width: 100%; }
+.idrow input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.idrow input.need { border-color: var(--ng); }
+@media (max-width: 420px) { .idrow { grid-template-columns: 1fr; } }
+.note { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+/* 탭 */
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.mode { appearance: none; font: inherit; text-align: left; cursor: pointer; min-width: 0; border: 1.5px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 10px 12px; }
+.mode b { display: block; font-size: 16px; }
+.mode span { font-size: 13px; color: var(--sub); }
+.mode[aria-selected="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.mode[aria-disabled="true"] { opacity: .6; border-style: dashed; }
+.mode:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lockmsg { margin: 0 0 14px; padding: 10px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; background: var(--ng-soft); color: var(--ng); border: 1px solid var(--ng); }
+/* 진행 */
+.progress { display: flex; align-items: center; gap: 12px; margin: 4px 0 14px; font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
+.meter { flex: 1; height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+/* 문항 */
+.q .qh { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
+.q .no { font-weight: 800; color: var(--accent); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.q .qt { font-weight: 600; min-width: 0; flex: 1 1 260px; }
+.lv { font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; flex-shrink: 0; }
+.lv.e { color: var(--ok); } .lv.m { color: var(--mid); } .lv.h { color: var(--ng); }
+.q .badge { font-size: 12px; font-weight: 700; color: var(--ok); flex-shrink: 0; }
+.q.solved { border-color: var(--ok); }
+pre.ctx { background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 10px 12px; margin: 0 0 8px; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+pre.ctx .blank { color: var(--code-sel); }
+pre.ctx.fill { font-size: 15px; white-space: pre-wrap; }
+.inl { font: inherit; width: 9ch; padding: 0 4px; margin: 0 2px; line-height: 1.5; background: rgba(127,214,207,.10); color: var(--code-text); border: 0; border-bottom: 2px solid var(--code-sel); border-radius: 3px 3px 0 0; }
+.inl:focus { outline: 2px solid var(--code-sel); outline-offset: 1px; }
+textarea.code { width: 100%; display: block; resize: vertical; font-size: 15px; line-height: 1.6; background: var(--code-bg); color: var(--code-text); caret-color: var(--code-sel); border: 1.5px solid var(--code-line); border-radius: 8px; padding: 9px 12px; tab-size: 4; }
+textarea.code:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+textarea.code:disabled, .inl:disabled { opacity: .85; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+.btn { appearance: none; border: 0; border-radius: 8px; padding: 9px 16px; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.btn.big { padding: 13px 22px; font-size: 16px; }
+.btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.fb { margin-top: 8px; font-size: 14px; font-weight: 600; }
+.fb.ok { color: var(--ok); } .fb.ng { color: var(--ng); }
+.fb ul { margin: 2px 0 0; padding-left: 18px; font-weight: 500; }
+.hint { margin-top: 8px; background: var(--accent-soft); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.hint code { white-space: pre-wrap; }
+.q.okq { border-color: var(--ok); } .q.ngq { border-color: var(--ng); }
+/* 결과 */
+.result { border: 2px solid var(--accent); text-align: center; }
+.rtitle { font-size: 13px; letter-spacing: .04em; color: var(--sub); margin: 0 0 6px; }
+.who { font-size: 20px; font-weight: 800; margin: 0; }
+.who span { color: var(--accent); }
+.score { font-size: 48px; font-weight: 800; color: var(--accent); margin: 2px 0 0; font-variant-numeric: tabular-nums; }
+.big2 { font-size: 26px; font-weight: 800; color: var(--ok); margin: 6px 0 2px; }
+.rdetail { color: var(--sub); margin: 0 0 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 0 0 12px; }
+.grid div { border-radius: 6px; font-size: 11px; padding: 3px 0; line-height: 1.3; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.grid div b { display: block; font-size: 13px; }
+.grid .o { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.grid .x { background: var(--ng-soft); color: var(--ng); border-color: var(--ng); }
+.grid .h { background: var(--mid-soft); color: var(--mid); border-color: var(--mid); }
+@media (max-width: 420px) { .grid { grid-template-columns: repeat(5, 1fr); } }
+.legend { font-size: 13px; color: var(--sub); margin: 0 0 10px; }
+.meta { font-size: 13px; color: var(--sub); margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+.rule { font-size: 14px; }
+.rule table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.rule th, .rule td { border: 1px solid var(--line); padding: 4px 8px; text-align: center; white-space: nowrap; }
+.rule th { background: var(--accent-soft); }
+.tablewrap { overflow-x: auto; }
+.done { border: 2px solid var(--ok); text-align: center; }
+.done p { margin: 0 0 10px; }
+/* 하단 바 */
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); }
+.bar .in { max-width: 820px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+.bar .prog { flex: 1; font-size: 14px; color: var(--sub); min-width: 0; font-variant-numeric: tabular-nums; }
+.bar .prog b { color: var(--text); }
+.warn { color: var(--ng); font-size: 13px; }
+.toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ng); color: #fff; padding: 8px 14px; border-radius: 8px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
+.dup { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.dup .box { max-width: 460px; background: var(--card); border: 2px solid var(--ng); border-radius: 12px; padding: 22px 20px; text-align: center; }
+.dup h2 { margin: 0 0 8px; font-size: 19px; color: var(--ng); }
+.dup p { margin: 0; }
+.ansrow { display: flex; align-items: center; gap: 0; margin-top: 2px; border: 1.5px solid var(--text); border-radius: 6px; overflow: hidden; }
+.anslab { flex-shrink: 0; padding: 8px 12px; font-weight: 700; background: var(--accent-soft); border-right: 1.5px solid var(--text); }
+.ansin { flex: 1; min-width: 0; border: 0; padding: 8px 12px; font: inherit; font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 16px; background: var(--card); color: var(--text); }
+.ansin:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ansin:disabled { opacity: .85; }
+.withscreen { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; }
+.withscreen pre.ctx { min-width: 0; }
+.screen { border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; margin: 0 0 8px; background: var(--card); font-size: 14px; }
+.screen .sct { font-size: 12px; color: var(--sub); }
+.screen ul { margin: 2px 0 0; padding-left: 20px; }
+@media (max-width: 480px) { .withscreen { grid-template-columns: 1fr; } }
+.explain { margin-top: 8px; background: var(--ok-soft); color: var(--text); border-radius: 8px; padding: 8px 12px; font-size: 14px; }
+.explain b { color: var(--ok); }
+.part { font-size: 14px; letter-spacing: .02em; color: var(--accent); font-weight: 700; margin: 18px 0 8px; }
+.conv { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--text); background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; display: inline-block; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>수행평가 대비 최종 점검</h1>
+    <p>응용프로그래밍 화면구현 · UI 테스트 코드 작성 · 형성평가 20문제를 모두 맞히면 실제 수행평가와 같은 형식의 최종평가 20문제가 열립니다.</p>
+  </header>
+
+  <section class="card" id="idcard">
+    <h2>학번과 이름을 입력하세요</h2>
+    <div class="idrow">
+      <label for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
+      <label for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
+    </div>
+    <p class="note">형성평가 결과와 최종평가 결과 모두 학번·이름과 함께 표시됩니다. 두 결과 화면을 각각 캡처해서 제출하세요.</p>
+  </section>
+
+  <div class="modes" role="tablist" aria-label="평가">
+    <button class="mode" role="tab" id="tabF" aria-controls="viewF" aria-selected="true" type="button"><b>형성평가 20문제</b><span>코드 직접 쓰기 · 힌트 · 해설</span></button>
+    <button class="mode" role="tab" id="tabT" aria-controls="viewT" aria-selected="false" aria-disabled="true" type="button"><b>최종평가 20문제</b><span id="tabTsub">잠김 · 형성평가를 모두 맞히면 열림</span></button>
+  </div>
+  <p class="lockmsg" id="lockmsg" role="alert" hidden></p>
+
+  <!-- 형성평가 -->
+  <div id="viewF" role="tabpanel" aria-labelledby="tabF">
+    <section class="card result" id="fRes" hidden aria-live="polite"></section>
+    <section class="card done" id="fDone" hidden>
+      <p><b>형성평가 20문제를 모두 풀었습니다.</b> 결과를 확인해 캡처한 뒤 최종평가로 넘어가세요.</p>
+      <button class="btn big" type="button" id="fDoneBtn">형성평가 결과 보기</button>
+    </section>
+    <div class="progress"><span>정답 <b id="fCnt">0</b> / 20</span><div class="meter"><i id="fBar"></i></div><span>쉬움 12 · 보통 5 · 어려움 3</span></div>
+    <div id="fList"></div>
+  </div>
+
+  <!-- 최종평가 -->
+  <div id="viewT" role="tabpanel" aria-labelledby="tabT" hidden>
+    <section class="card result" id="tRes" hidden aria-live="polite"></section>
+    <section class="card rule">
+      <h2>실제 수행평가 채점 기준 (수행평가 문제 10개 환산에 사용)</h2>
+      <div class="tablewrap"><table>
+        <tr><th>정확히 쓴 코드</th><td>10개</td><td>9개</td><td>8개</td><td>7개</td><td>6개</td><td>5개</td><td>4개</td><td>3개</td><td>1~2개</td><td>0개</td></tr>
+        <tr><th>점수</th><td>100</td><td>95</td><td>90</td><td>85</td><td>80</td><td>75</td><td>70</td><td>65</td><td>60</td><td>55</td></tr>
+      </table></div>
+      <p class="note">20문제의 순서는 응시할 때마다 섞입니다. 20문제 가운데 10문제는 실제 수행평가에 나오는 내용이고, 결과에는 그 10문제만으로 환산한 수행평가 점수도 함께 보여 줍니다. 답안칸에는 빈칸에 들어갈 답만 쓰고 [채점하기]를 누르세요. 힌트는 없고, 채점 후에도 정답은 보여 주지 않습니다.</p>
+    </section>
+    <div id="tList"></div>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden>
+  <div class="in">
+    <div class="prog">
+      <div><b>최종평가</b> · 걸린 시간 <b id="timer">00:00</b></div>
+      <div class="warn" id="warn" hidden></div>
+    </div>
+    <button class="btn big" type="button" id="submitBtn">채점하기</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<div class="dup" id="dup" role="alertdialog" aria-labelledby="dupTitle" hidden>
+  <div class="box">
+    <h2 id="dupTitle">다른 창에서도 열려 있습니다</h2>
+    <p>이 평가 페이지는 한 번에 한 창에서만 풀 수 있습니다. 다른 창(탭)을 모두 닫고 이 페이지를 새로고침하세요.</p>
+  </div>
+</div>
+
+<script>
+/* ───────── 공통 도구 ───────── */
+function $(id) { return document.getElementById(id); }
+function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function mmss(ms) { var s = Math.floor(ms / 1000); return pad2(Math.floor(s / 60)) + ":" + pad2(s % 60); }
+function stamp(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + " " + pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function normSel(s) { return s.trim().toLowerCase().replace(/\s+/g, " "); }
+function normVal(v) { v = v.trim().replace(/;+\s*$/, "").trim().toLowerCase().replace(/\s+/g, " "); if (/^0(px)?$/.test(v)) v = "0px"; return v; }
+function short(t) { t = t.replace(/\s+/g, " ").trim(); return t.length > 40 ? t.slice(0, 40) + "…" : t; }
+function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+function eulReul(w) { var c = w.charCodeAt(w.length - 1); if (c < 0xac00 || c > 0xd7a3) return "을(를)"; return (c - 0xac00) % 28 ? "을" : "를"; }
+
+/* ───────── CSS 채점 ───────── */
+function parseDecls(body) {
+  var out = { decls: {}, issues: [], noSemi: false };
+  var chunks = body.split(";");
+  chunks.forEach(function (chunk, idx) {
+    var t = chunk.trim();
+    if (!t) return;
+    var c = (t.match(/:/g) || []).length;
+    if (c === 0) { out.issues.push(t.indexOf("=") >= 0 ? "콜론(:) 대신 등호(=)를 썼습니다." : "「" + short(t) + "」에 콜론(:)이 없습니다."); return; }
+    if (c > 1) { out.issues.push("세미콜론(;)이 빠져 두 줄이 하나로 이어졌습니다."); return; }
+    var k = t.indexOf(":"), prop = normSel(t.slice(0, k)), val = t.slice(k + 1);
+    if (!val.trim()) { out.issues.push("값이 비어 있는 줄이 있습니다."); return; }
+    out.decls[prop] = normVal(val);
+    if (idx === chunks.length - 1) out.noSemi = true;
+  });
+  return out;
+}
+function parseSheet(text) {
+  var res = { rules: {}, issues: [] }, i = 0, guard = 0;
+  text = text.replace(/\/\*[\s\S]*?\*\//g, "");
+  while (guard++ < 100) {
+    var open = text.indexOf("{", i);
+    if (open < 0) { if (text.slice(i).replace(/}/g, "").trim()) res.issues.push("중괄호 { } 밖에 남은 코드가 있습니다."); break; }
+    var selRaw = text.slice(i, open);
+    if (selRaw.indexOf("}") >= 0) selRaw = selRaw.slice(selRaw.lastIndexOf("}") + 1);
+    var sel = normSel(selRaw), close = text.indexOf("}", open + 1), nextOpen = text.indexOf("{", open + 1), body, broken = false;
+    if (close < 0 || (nextOpen >= 0 && nextOpen < close)) {
+      broken = true;
+      var end = nextOpen >= 0 ? nextOpen : text.length, seg = text.slice(open + 1, end);
+      var cut = Math.max(seg.lastIndexOf(";"), seg.lastIndexOf("\n"));
+      if (nextOpen < 0 || cut < 0) cut = seg.length - 1;
+      body = seg.slice(0, cut + 1); i = open + 1 + cut + 1;
+    } else { body = text.slice(open + 1, close); i = close + 1; }
+    if (!sel) { res.issues.push("선택자 없이 중괄호 { 가 시작됩니다."); continue; }
+    var d = parseDecls(body);
+    res.rules[sel] = { decls: d.decls, issues: d.issues, noSemi: d.noSemi, broken: broken };
+  }
+  return res;
+}
+function declErrs(want, got, errs) {
+  want.forEach(function (d) {
+    var g = got[d[0]];
+    if (g === undefined) { errs.push("필요한 속성이 빠졌거나 속성 이름의 철자가 틀렸습니다."); return; }
+    if (!(typeof d[1] === "function" ? d[1](g) : g === normVal(d[1]))) errs.push("속성 값이 다릅니다.");
+  });
+}
+function checkCss(raw, rules) {
+  if (!raw.trim()) return ["아무것도 쓰지 않았습니다."];
+  var p = parseSheet(raw), errs = p.issues.slice(), known = {};
+  rules.forEach(function (r) {
+    var key = normSel(r.sel), got = p.rules[key];
+    known[key] = true;
+    if (!got) { errs.push("선택자가 없거나 선택자 철자가 다릅니다."); return; }
+    if (got.broken) errs.push("닫는 중괄호 } 가 빠졌습니다.");
+    errs = errs.concat(got.issues);
+    if (got.noSemi) errs.push("끝에 세미콜론(;)이 빠졌습니다.");
+    declErrs(r.decl, got.decls, errs);
+  });
+  Object.keys(p.rules).forEach(function (s) { if (!known[s]) errs.push("필요 없는 선택자가 있습니다. 선택자 철자를 확인하세요."); });
+  return uniq(errs);
+}
+
+/* ───────── HTML/JSP 채점 (태그 구조까지 확인) ───────── */
+function eqi(v) { return function (a) { return a.trim().toLowerCase() === v; }; }
+function hasClass(c) { return function (a) { return a.trim().split(/\s+/).indexOf(c) >= 0; }; }
+function goTo(file) {
+  return function (a) {
+    var s = a.replace(/\s+/g, "").replace(/;+$/, "");
+    var mm = s.match(/^(?:window\.)?location(?:\.href)?=(['"])([^'"]+)\1$/i);
+    return !!mm && mm[2] === file;
+  };
+}
+function closeNeeds(specs, acc) {
+  specs.forEach(function (s) { if (s.close) acc[s.tag] = (acc[s.tag] || 0) + 1; if (s.kids) closeNeeds(s.kids, acc); });
+  return acc;
+}
+function kidsOf(node) {
+  var out = [];
+  Array.prototype.forEach.call(node.children, function (c) {
+    if (c.localName === "tbody" || c.localName === "thead") out = out.concat(kidsOf(c)); else out.push(c);
+  });
+  return out;
+}
+function checkHtml(raw, specs) {
+  if (!raw.trim()) return ["아무것도 쓰지 않았습니다."];
+  if (raw.indexOf("<") < 0) return ["태그(< >)로 써야 합니다."];
+  var errs = [];
+  var need = closeNeeds(specs, {});
+  var missingClose = Object.keys(need).some(function (tag) {   // 여는 태그는 있는데 닫는 태그가 모자랄 때만
+    var n = (raw.match(new RegExp("<\\/\\s*" + esc(tag) + "\\s*>", "gi")) || []).length;
+    if (tag.indexOf(":") > 0) n += (raw.match(new RegExp("<" + esc(tag) + "[^>]*\\/\\s*>", "gi")) || []).length;
+    var o = (raw.match(new RegExp("<" + esc(tag) + "(?=[\\s>/])", "gi")) || []).length;
+    return n < need[tag] && o > n;
+  });
+  if (missingClose) return ["닫는 태그가 빠졌습니다."];
+  var t = document.createElement("template");
+  t.innerHTML = raw;
+  var nodes = Array.prototype.filter.call(t.content.childNodes, function (n) { return n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim()); });
+  if (nodes.some(function (n) { return n.nodeType === 3; })) errs.push("태그 바깥에 필요 없는 글자가 있습니다.");
+  var els = nodes.filter(function (n) { return n.nodeType === 1; });
+  if (els.length !== specs.length) {
+    errs.push(els.length < specs.length ? "필요한 코드가 모두 있지 않습니다. (" + specs.length + "개 필요)" : "필요 없는 코드가 더 있습니다.");
+    return errs;
+  }
+  els.forEach(function (node, i) {
+    var pre = specs.length > 1 ? "(" + (i + 1) + "번째 코드) " : "";
+    checkEl(node, specs[i], raw).forEach(function (m) { errs.push(pre + m); });
+  });
+  return uniq(errs);
+}
+function checkEl(node, s, raw) {
+  var errs = [];
+  if (node.localName !== s.tag) return ["태그 이름이 맞지 않거나 태그의 순서·위치가 다릅니다."];
+  var miss = 0, wrong = 0;
+  Object.keys(s.attrs || {}).forEach(function (name) {
+    var want = s.attrs[name], got = node.getAttribute(name);
+    if (got === null) { miss++; return; }
+    if (!(typeof want === "function" ? want(got) : got.trim() === want)) wrong++;
+    if (new RegExp("\\s" + esc(name) + "\\s*=\\s*[^\"'\\s>]", "i").test(raw)) errs.push("속성 값을 따옴표(\" \")로 감싸지 않았습니다.");
+  });
+  if (miss) errs.push("필요한 속성이 빠졌거나 속성 이름의 철자가 틀렸습니다.");
+  if (wrong) errs.push("속성 값이 다릅니다. (파일명·글자·대소문자를 확인)");
+  if (s.text != null && node.textContent.trim() !== s.text) errs.push("화면에 보이는 글자가 문제와 다릅니다.");
+  if (s.kids) {
+    var kids = kidsOf(node);
+    if (kids.length !== s.kids.length) errs.push("<" + s.tag + "> 안에 들어갈 태그의 개수나 구성이 맞지 않습니다.");
+    else kids.forEach(function (k, i) { errs = errs.concat(checkEl(k, s.kids[i], raw)); });
+  }
+  return uniq(errs);
+}
+function checkBlank(raw, ans) {
+  var v = raw.trim();
+  if (!v) return ["빈칸을 채우지 않았습니다."];
+  if (/[<>=]/.test(v)) return ["빈칸에는 값만 씁니다. 태그나 속성 이름은 쓰지 않습니다."];
+  if (/["']/.test(v)) return ["따옴표는 이미 있습니다. 따옴표 없이 값만 쓰세요."];
+  return v.toLowerCase() === ans ? [] : ["값이 다릅니다."];
+}
+/* ───── 수행평가 빈칸 채점: 값 / 속성="값" / 속성: 값 ───── */
+function checkVal(raw, c) {
+  var v = raw.trim();
+  if (!v) return ["답을 쓰지 않았습니다."];
+  if (/["']/.test(v)) return ["따옴표는 이미 있습니다. 따옴표 없이 쓰세요."];
+  if (/[<>]/.test(v)) return ["꺾쇠(< >)는 이미 있습니다. 빈칸에 들어갈 이름만 쓰세요."];
+  var ok = c.cs ? v === c.ans : v.toLowerCase() === c.ans.toLowerCase();
+  if (ok) return [];
+  if (c.ans.charAt(0) === "." && v === c.ans.slice(1)) return ["class 선택자를 나타내는 기호가 빠졌습니다."];
+  if (v === "." + c.ans) return ["점(.)은 CSS 선택자에만 붙입니다. HTML의 class 값에는 점을 붙이지 않습니다."];
+  if (c.cs && v.toLowerCase() === c.ans.toLowerCase()) return ["대문자·소문자가 다릅니다. 파일 이름은 대소문자까지 같아야 합니다."];
+  return ["답이 다릅니다. (철자를 확인)"];
+}
+function checkAttr(raw, c) {
+  var v = raw.trim();
+  if (!v) return ["답을 쓰지 않았습니다."];
+  if (/[<>]/.test(v)) return ["꺾쇠(< >)는 이미 있습니다. 「속성=\"값\"」만 쓰세요."];
+  var m = v.match(/^([A-Za-z:-]+)\s*=\s*(.*)$/);
+  if (!m) return ["「속성=\"값\"」 모양으로 써야 합니다."];
+  var errs = [];
+  if (m[1].toLowerCase() !== c.name) errs.push("속성 이름이 다릅니다.");
+  var q = m[2].match(/^(["'])(.*)\1$/);
+  if (!q) { errs.push("값을 따옴표(\" \")로 감싸야 합니다."); return errs; }
+  if (q[2] !== c.val) errs.push("속성 값이 다릅니다. (파일 이름의 철자·대소문자를 확인)");
+  return errs;
+}
+function checkDecl(raw, c) {
+  var v = raw.trim().replace(/;\s*$/, "");
+  if (!v) return ["답을 쓰지 않았습니다."];
+  if (/[{}]/.test(v)) return ["중괄호는 이미 있습니다. 「속성: 값」만 쓰세요."];
+  if (v.indexOf(":") < 0) return ["속성과 값을 모두 써야 합니다. 「속성: 값」 모양으로 쓰세요."];
+  var p = parseDecls(v), keys = Object.keys(p.decls);
+  if (p.issues.length) return p.issues;
+  if (keys.length !== 1) return ["「속성: 값」 하나만 쓰세요."];
+  var errs = [];
+  if (keys[0] !== c.prop) errs.push("속성 이름이 다르거나 철자가 틀렸습니다.");
+  else {
+    var g = p.decls[keys[0]];
+    if (!(typeof c.val === "function" ? c.val(g) : g === normVal(c.val))) errs.push("값이 다릅니다.");
+  }
+  return errs;
+}
+function grade(it, raw) {
+  if (it.type === "html") return checkHtml(raw, it.spec);
+  if (it.type === "css") return checkCss(raw, it.rules);
+  if (it.type === "blank") return checkBlank(raw, it.ans);
+  if (it.type === "ex") return it.kind === "val" ? checkVal(raw, it) : it.kind === "attr" ? checkAttr(raw, it) : checkDecl(raw, it);
+  return [];
+}
+
+/* ───────── 문항 부품 ───────── */
+var TABLE_CENTER = function (v) { return ["auto", "0 auto", "0px auto"].indexOf(v) >= 0; };
+function H(spec, hint, rows) { return { type: "html", spec: spec, hint: hint, rows: rows || 1 }; }
+function C(rules, hint, rows) { return { type: "css", rules: rules, hint: hint, rows: rows || 3 }; }
+// 수행평가형 빈칸: code 안의 {①} 자리가 빈칸
+function V(mark, code, ans, hint, o) { return Object.assign({ type: "ex", kind: "val", mark: mark, code: code, ans: ans, hint: hint, cs: false }, o || {}); }
+function A(mark, code, name, val, hint) { return { type: "ex", kind: "attr", mark: mark, code: code, name: name, val: val, hint: hint }; }
+function D(mark, code, prop, val, hint) { return { type: "ex", kind: "decl", mark: mark, code: code, prop: prop, val: val, hint: hint }; }
+function sA(text, file) { return { tag: "a", attrs: { href: file }, text: text, close: true }; }
+
+var NUM = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳";
+var HEAD = "<head>\n    <link href=\"{①}\" rel=\"stylesheet\">\n    <meta charset=\"UTF-8\">\n</head>";
+function sLiA(text, file) { return { tag: "li", close: true, kids: [sA(text, file)] }; }
+function sInput(type, attrs) { var a = { type: eqi(type) }; Object.keys(attrs).forEach(function (k) { a[k] = attrs[k]; }); return { tag: "input", attrs: a }; }
+function sHome(label, file) { return sInput("button", { value: label, onclick: goTo(file) }); }
+function sUl(items) { return { tag: "ul", close: true, kids: items.map(function (s) { return { tag: "li", text: s, close: true }; }) }; }
+var W = {   // 코드 전체 쓰기 문항
+  link: function () { return H([{ tag: "link", attrs: { href: "style.css", rel: eqi("stylesheet") } }], '<link href="__________" rel="__________">'); },
+  inc: function (f) { return H([{ tag: "jsp:include", attrs: { page: f }, close: true }], '<jsp:include page="__________"></jsp:include>'); },
+  a: function (t, f) { return H([sA(t, f)], '<a href="__________">__________</a>'); },
+  li: function (t) { return H([{ tag: "li", text: t, close: true }], "<li>__________</li>"); },
+  liA: function (t, f) { return H([sLiA(t, f)], '<li><a href="__________">__________</a></li>'); },
+  ul: function (items) { return H([sUl(items)], "<ul>\n" + items.map(function () { return "    <li>______</li>"; }).join("\n") + "\n</ul>", items.length + 2); },
+  input: function (type, attrs, hint) { return H([sInput(type, attrs)], hint); },
+  home: function (l, f) { return H([sHome(l, f)], '<input type="______" value="______" onclick="location.href=\'__________\'">'); },
+  form: function () { return H([{ tag: "form", close: true, kids: [{ tag: "table", attrs: { border: "1" }, close: true }] }], '<______>\n    <table border="__">\n    </______>\n</______>', 4); },
+  navA: function () { return C([{ sel: "nav a", decl: [["text-decoration", "none"]] }], "nav a {\n    ______: ______;\n}"); },
+  table: function () { return C([{ sel: "table", decl: [["margin", TABLE_CENTER]] }], "table {\n    ______: ______;\n}"); },
+  tdc: function () { return C([{ sel: ".td-center", decl: [["text-align", "center"]] }], "______ {\n    ______: ______;\n}"); },
+  h2: function () { return C([{ sel: "h2", decl: [["text-align", "center"]] }], "h2 {\n    ______: ______;\n}"); },
+  vmid: function (sel, h) { return C([{ sel: sel, decl: [["height", h + "px"], ["line-height", h + "px"]] }], sel + " {\n    height: ____;\n    ______: ____;\n}", 4); }
+};
+
+/* ───────── 형성평가 20문제: 코드를 직접 쓰고, 맞히면 해설이 나온다 ───────── */
+var FORM = [
+  { lv: "e", q: "header.jsp에서 style.css 파일을 연결하는 link 태그를 한 줄로 작성하시오.", ctx: "<head>\n[ 여기 ]\n<meta charset=\"UTF-8\">\n</head>", item: W.link(),
+    ex: "link 태그는 외부 파일을 연결합니다. href에는 파일 이름, rel=\"stylesheet\"는 「이 파일은 디자인(CSS) 파일」이라는 뜻입니다." },
+  { lv: "e", q: "index.jsp에서 header.jsp를 불러오는 코드를 한 줄로 작성하시오.", ctx: "<body>\n[ 여기 ]\n<section> ... </section>\n</body>", item: W.inc("header.jsp"),
+    ex: "jsp:include는 공통 파일의 내용을 그 자리에 끼워 넣습니다. 그래서 header.jsp 한 파일만 고치면 모든 페이지의 머리 부분이 함께 바뀝니다." },
+  { lv: "e", q: "「예약신청」을 클릭하면 reservation.jsp로 이동하는 a 태그 전체를 작성하시오.", ctx: "<nav>\n[ 여기 ]\n</nav>", item: W.a("예약신청", "reservation.jsp"),
+    ex: "a 태그의 href에는 이동할 파일 이름을, 여는 태그와 닫는 태그 사이에는 화면에 보이는 글자를 씁니다." },
+  { lv: "e", q: "시설명을 입력받는 text 입력칸을 작성하시오. name은 facility_name으로 한다.", item: W.input("text", { name: "facility_name" }, '<input type="______" name="__________">'),
+    ex: "type=\"text\"는 글자를 입력하는 칸입니다. name은 화면에 보이지 않고, 입력칸을 구분하는 이름입니다." },
+  { lv: "e", q: "입력 내용을 전송하는 「예약등록」 버튼을 input 태그로 작성하시오.", item: W.input("submit", { value: "예약등록" }, '<input type="______" value="______">'),
+    ex: "type=\"submit\"은 입력 내용을 보내는 버튼입니다. 버튼에 보이는 글자는 value로 정합니다." },
+  { lv: "e", q: "입력 내용을 모두 지우는 「다시작성」 버튼을 input 태그로 작성하시오.", item: W.input("reset", { value: "다시작성" }, '<input type="______" value="______">'),
+    ex: "type=\"reset\"은 입력칸의 내용을 모두 지우는 버튼입니다. submit과 헷갈리지 않도록 주의하세요." },
+  { lv: "e", q: "nav 안의 링크 밑줄을 제거하는 CSS를 선택자부터 작성하시오.", item: W.navA(),
+    ex: "「nav a」는 nav 안에 있는 a만 고르는 선택자입니다. text-decoration: none;은 밑줄 같은 글자 장식을 없앱니다." },
+  { lv: "e", q: "table 자체를 페이지의 가운데에 배치하는 CSS를 선택자부터 작성하시오.", item: W.table(),
+    ex: "margin: auto;는 바깥 여백을 왼쪽·오른쪽에 똑같이 나눠서, 표 전체가 가운데로 옵니다." },
+  { lv: "e", q: "td-center 클래스가 적용된 셀의 내용을 가운데 정렬하는 CSS를 선택자부터 작성하시오.", item: W.tdc(),
+    ex: "class 선택자는 CSS에서 이름 앞에 점(.)을 붙입니다. HTML의 class=\"td-center\"에는 점을 붙이지 않습니다." },
+  { lv: "e", q: "스크롤해도 header가 움직이지 않도록 화면 맨 위에 고정하는 CSS를 선택자부터 작성하시오. (position과 top)", item: C([{ sel: "header", decl: [["position", "fixed"], ["top", "0px"]] }], "header {\n    position: ______;\n    top: ______;\n}", 4),
+    ex: "position: fixed;는 스크롤해도 화면의 같은 자리에 고정합니다. top: 0px;는 화면 위쪽에서 0px, 즉 맨 위에 붙입니다." },
+  { lv: "e", q: "footer를 화면 맨 아래에 고정하는 CSS를 선택자부터 작성하시오. (position과 bottom)", item: C([{ sel: "footer", decl: [["position", "fixed"], ["bottom", "0px"]] }], "footer {\n    position: ______;\n    bottom: ______;\n}", 4),
+    ex: "bottom: 0px;는 화면 아래쪽에서 0px, 즉 맨 아래에 붙입니다. top·bottom은 position: fixed와 함께 써야 동작합니다." },
+  { lv: "e", q: "수정 화면(update.jsp)에서 시설명 입력칸에 기존 데이터 「체육관」이 미리 보이도록 input 태그 전체를 작성하시오. type은 text, name은 facility_name이다.", item: W.input("text", { name: "facility_name", value: "체육관" }, '<input type="______" name="______" value="______">'),
+    ex: "value는 입력칸에 처음부터 보이는 값입니다. 수정 화면에서는 목록에서 고른 기존 데이터를 value에 넣어 보여 줍니다." },
+  { lv: "m", q: "footer의 높이를 70px로 하고, 글자를 세로 가운데로 배치하는 CSS를 선택자부터 작성하시오.", item: W.vmid("footer", 70),
+    ex: "line-height(줄 높이)를 height와 같은 값으로 하면, 한 줄짜리 글자가 세로 가운데에 놓입니다." },
+  { lv: "m", q: "클릭하면 index.jsp로 이동하는 「홈으로」 버튼을 input 태그 전체로 작성하시오.", item: W.home("홈으로", "index.jsp"),
+    ex: "type=\"button\"은 그냥 누르는 버튼이고, onclick=\"location.href='index.jsp'\"가 누르면 index.jsp로 이동하게 합니다. 바깥은 큰따옴표, 안쪽은 작은따옴표입니다." },
+  { lv: "m", q: "아래 실행화면이 나오도록 ul과 li로 목록 전체를 작성하시오.", screen: ["체육대회", "학교축제", "현장체험학습"], item: W.ul(["체육대회", "학교축제", "현장체험학습"]),
+    ex: "ul은 순서 없는 목록 전체를 감싸고, 그 안에 li를 항목 수만큼 넣습니다." },
+  { lv: "m", q: "form이 table을 감싸도록 네 줄을 작성하시오. table에는 border=\"1\"을 쓴다. (form 시작 → table 시작 → table 끝 → form 끝)", item: W.form(),
+    ex: "form은 입력칸과 버튼을 하나의 입력 양식으로 묶습니다. 등록 화면과 수정 화면은 form 안에 table을 넣어 만듭니다." },
+  { lv: "m", q: "header가 화면 맨 위에 높이 70px로 고정되어 있다. nav를 header 바로 아래에 고정하는 CSS를 선택자부터 작성하시오. (position과 top)", item: C([{ sel: "nav", decl: [["position", "fixed"], ["top", "70px"]] }], "nav {\n    position: ______;\n    top: ______;\n}", 4),
+    ex: "header가 화면 위에서 0~70px을 차지하므로, nav는 위에서 70px 떨어진 곳에서 시작해야 header 바로 아래에 붙습니다." },
+  { lv: "h", q: "nav 안에 들어갈 메뉴 목록 전체를 ul, li, a로 작성하시오. 순서대로 「예약신청」→reservation.jsp, 「예약현황」→reservationlist.jsp, 「홈으로」→index.jsp", ctx: "<nav>\n[ 여기 ]\n</nav>", item: H([{ tag: "ul", close: true, kids: [sLiA("예약신청", "reservation.jsp"), sLiA("예약현황", "reservationlist.jsp"), sLiA("홈으로", "index.jsp")] }], '<ul>\n    <li><a href="______">______</a></li>\n    <li><a href="______">______</a></li>\n    <li><a href="______">______</a></li>\n</ul>', 5),
+    ex: "메뉴 하나가 li 하나입니다. 메뉴를 늘리려면 <li><a ...>...</a></li> 줄을 하나 더 추가하면 됩니다." },
+  { lv: "h", q: "등록 화면의 한 부분을 작성하시오. form 안에 border=\"1\"인 table이 있고, 한 행(tr)에 제목 칸(th) 「시설명」과 데이터 칸(td)이 있다. td 안에는 name이 facility_name인 text 입력칸이 들어간다.", item: H([{ tag: "form", close: true, kids: [{ tag: "table", attrs: { border: "1" }, close: true, kids: [{ tag: "tr", close: true, kids: [{ tag: "th", text: "시설명", close: true }, { tag: "td", close: true, kids: [sInput("text", { name: "facility_name" })] }] }] }] }], '<form>\n<table border="1">\n    <tr>\n        <th>______</th>\n        <td><input type="______" name="______"></td>\n    </tr>\n</table>\n</form>', 8),
+    ex: "form > table > tr > th·td 순서로 감쌉니다. 입력칸(input)은 td 안에 넣습니다." },
+  { lv: "h", q: "등록 화면의 버튼 행(tr)을 작성하시오. 한 칸(td)이 가로 2칸을 차지하고 td-center 클래스가 적용된다. 그 안에 순서대로 「예약등록」 전송 버튼, 「다시작성」 초기화 버튼, index.jsp로 이동하는 「홈으로」 버튼을 input 태그로 넣는다.", item: H([{ tag: "tr", close: true, kids: [{ tag: "td", attrs: { colspan: "2", "class": hasClass("td-center") }, close: true, kids: [sInput("submit", { value: "예약등록" }), sInput("reset", { value: "다시작성" }), sHome("홈으로", "index.jsp")] }] }], '<tr>\n    <td colspan="__" class="__________">\n        <input type="______" value="예약등록">\n        <input type="______" value="다시작성">\n        <input type="______" value="홈으로" onclick="location.href=\'______\'">\n    </td>\n</tr>', 7),
+    ex: "colspan=\"2\"는 가로 2칸 합치기, class=\"td-center\"는 style.css의 .td-center 규칙을 적용합니다. 버튼 3개의 type은 submit, reset, button입니다." }
+];
+var LV = { e: "쉬움", m: "보통", h: "어려움" };
+
+/* ───────── 화면 부품 ───────── */
+function makeTA(id, rows, label) {
+  var ta = el("textarea", "code");
+  ta.id = id; ta.rows = rows > 1 ? rows + 1 : 2;
+  ["spellcheck", "autocomplete", "autocorrect", "autocapitalize"].forEach(function (a) { ta.setAttribute(a, a === "spellcheck" ? "false" : "off"); });
+  ta.setAttribute("aria-label", label);
+  ta.addEventListener("keydown", function (e) {
+    if (e.key === "Tab" && !e.shiftKey) { e.preventDefault(); var s = ta.selectionStart, en = ta.selectionEnd; ta.value = ta.value.slice(0, s) + "    " + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+  });
+  return ta;
+}
+function ctxPre(text) {
+  var pre = el("pre", "ctx");
+  text.split("[ 여기 ]").forEach(function (part, i, arr) {
+    pre.appendChild(document.createTextNode(part));
+    if (i < arr.length - 1) pre.appendChild(el("span", "blank", "____________ ← 여기에 들어갈 코드"));
+  });
+  return pre;
+}
+function blankLine(it, id, label) {
+  var pre = el("pre", "ctx fill");
+  pre.appendChild(document.createTextNode(it.pre));
+  var inp = document.createElement("input");
+  inp.className = "inl"; inp.id = id; inp.type = "text";
+  inp.setAttribute("autocomplete", "off"); inp.setAttribute("autocapitalize", "off"); inp.setAttribute("spellcheck", "false");
+  inp.setAttribute("aria-label", label);
+  pre.appendChild(inp);
+  pre.appendChild(document.createTextNode(it.post));
+  return { box: pre, input: inp };
+}
+function exCode(code) {          // {①} 자리를 빈칸 표시로 바꿔 보여 준다
+  var pre = el("pre", "ctx");
+  code.split(/\{(.)\}/).forEach(function (part, i) {
+    if (i % 2 === 0) pre.appendChild(document.createTextNode(part));
+    else pre.appendChild(el("span", "blank", part + "____"));
+  });
+  return pre;
+}
+function screenBox(items) {
+  var box = el("div", "screen");
+  box.appendChild(el("div", "sct", "<실행화면>"));
+  var ul = el("ul");
+  items.forEach(function (s) { ul.appendChild(el("li", null, s)); });
+  box.appendChild(ul);
+  return box;
+}
+function answerBox(card, it, id, label, screen) {
+  if (it.type === "ex") {
+    if (screen) { var wrapS = el("div", "withscreen"); wrapS.appendChild(exCode(it.code)); wrapS.appendChild(screenBox(screen)); card.appendChild(wrapS); }
+    else card.appendChild(exCode(it.code));
+    var row = el("label", "ansrow");
+    row.setAttribute("for", id);
+    row.appendChild(el("span", "anslab", "답 " + it.mark));
+    var inp = document.createElement("input");
+    inp.className = "ansin"; inp.id = id; inp.type = "text";
+    inp.setAttribute("autocomplete", "off"); inp.setAttribute("autocapitalize", "off"); inp.setAttribute("spellcheck", "false");
+    row.appendChild(inp);
+    card.appendChild(row);
+    return inp;
+  }
+  if (screen) card.appendChild(screenBox(screen));
+  if (it.type === "blank") { var b = blankLine(it, id, label); card.appendChild(b.box); return b.input; }
+  var ta = makeTA(id, it.rows, label); card.appendChild(ta); return ta;
+}
+function renderErrs(box, errs) {
+  box.innerHTML = "";
+  if (!errs.length) { box.className = "fb ok"; box.textContent = "✓ 정답입니다."; return; }
+  box.className = "fb ng";
+  box.appendChild(document.createTextNode("✗ 다시 확인하세요."));
+  var ul = el("ul");
+  errs.forEach(function (m) { ul.appendChild(el("li", null, m)); });
+  box.appendChild(ul);
+}
+function needId() {
+  var sid = $("sid").value.trim(), sname = $("sname").value.trim();
+  $("sid").classList.toggle("need", !sid);
+  $("sname").classList.toggle("need", !sname);
+  if (!sid || !sname) {
+    toast("학번과 이름을 먼저 입력하세요.");
+    $("idcard").scrollIntoView({ block: "start" });
+    (!sid ? $("sid") : $("sname")).focus();
+    return null;
+  }
+  return { sid: sid, sname: sname };
+}
+function whoLine(id) {
+  var who = el("p", "who");
+  who.appendChild(el("span", null, id.sid));
+  who.appendChild(document.createTextNode(" "));
+  who.appendChild(el("span", null, id.sname));
+  return who;
+}
+
+/* ───────── 형성평가 ───────── */
+var F = { solved: {}, hint: {}, start: null };
+function buildForm() {
+  var list = $("fList");
+  list.innerHTML = "";
+  F = { solved: {}, hint: {}, start: null };
+  FORM.forEach(function (P, i) {
+    var no = i + 1, it = P.item;
+    var card = el("section", "card q");
+    var qh = el("div", "qh");
+    qh.appendChild(el("span", "no", no + "."));
+    qh.appendChild(el("span", "lv " + P.lv, LV[P.lv]));
+    qh.appendChild(el("span", "qt", P.q));
+    var badge = el("span", "badge", "");
+    qh.appendChild(badge);
+    card.appendChild(qh);
+    if (P.ctx) card.appendChild(ctxPre(P.ctx));
+    var inp = answerBox(card, it, "f" + no, no + "번 답", P.screen);
+    inp.addEventListener("input", function () { if (!F.start) F.start = Date.now(); });
+    var row = el("div", "row");
+    var check = el("button", "btn", "확인"); check.type = "button";
+    var hb = el("button", "btn ghost", "힌트 보기"); hb.type = "button";
+    var hint = el("div", "hint"); hint.hidden = true;
+    hint.appendChild(document.createTextNode(it.type === "html" || it.type === "css" ? "코드 틀: " : "힌트: "));
+    hint.appendChild(el("code", null, it.hint));
+    var fb = el("div", "fb");
+    hb.addEventListener("click", function () {
+      if (hint.hidden && !F.solved[no]) F.hint[no] = true;   // 맞히기 전에 힌트를 열면 기록
+      hint.hidden = !hint.hidden;
+      hb.textContent = hint.hidden ? "힌트 보기" : "힌트 닫기";
+    });
+    check.addEventListener("click", function () {
+      var errs = grade(it, inp.value);
+      renderErrs(fb, errs);
+      if (!errs.length && !F.solved[no]) {
+        F.solved[no] = true;
+        card.classList.add("solved");
+        badge.textContent = F.hint[no] ? "✓ 정답 · 힌트 보고 풀었음" : "✓ 정답 · 힌트 없이 풀었음";
+        if (P.ex) { var exb = el("div", "explain"); exb.appendChild(el("b", null, "해설 ")); exb.appendChild(document.createTextNode(P.ex)); card.appendChild(exb); }
+        updateForm();
+      }
+    });
+    row.appendChild(check); row.appendChild(hb);
+    card.appendChild(row); card.appendChild(hint); card.appendChild(fb);
+    list.appendChild(card);
+  });
+  updateForm();
+}
+function formDone() { return Object.keys(F.solved).length === FORM.length; }
+function updateForm() {
+  var c = Object.keys(F.solved).length;
+  $("fCnt").textContent = c;
+  $("fBar").style.width = (c / FORM.length * 100) + "%";
+  $("fDone").hidden = !formDone() || !$("fRes").hidden;
+  var open = formDone();
+  $("tabT").setAttribute("aria-disabled", open ? "false" : "true");
+  $("tabTsub").textContent = open ? "열림 · 힌트 없음 · 실제 채점 기준" : "잠김 · 형성평가를 모두 맞히면 열림";
+}
+function showFormResult() {
+  var id = needId();
+  if (!id) return;
+  var now = new Date(), used = 0;
+  var res = $("fRes");
+  res.innerHTML = "";
+  res.appendChild(el("p", "rtitle", "수행평가 대비 형성평가 20문제 결과"));
+  res.appendChild(whoLine(id));
+  res.appendChild(el("div", "big2", "✓ 20문제 모두 풀었음"));
+  var g = el("div", "grid");
+  FORM.forEach(function (P, i) {
+    var h = !!F.hint[i + 1];
+    if (h) used++;
+    var c = el("div", h ? "h" : "o");
+    c.appendChild(document.createTextNode(String(i + 1)));
+    c.appendChild(el("b", null, h ? "힌트" : "자력"));
+    g.appendChild(c);
+  });
+  res.appendChild(el("p", "rdetail", "힌트 없이 풀었음 " + (FORM.length - used) + "문제 · 힌트 보고 풀었음 " + used + "문제 · 걸린 시간 " + mmss(F.start ? now - F.start : 0)));
+  res.appendChild(g);
+  res.appendChild(el("p", "legend", "자력 = 힌트 없이 풀었음 · 힌트 = 힌트 보고 풀었음"));
+  res.appendChild(el("p", "meta", "완료 " + stamp(now)));
+  var go = el("button", "btn big", "최종평가로 넘어가기");
+  go.type = "button";
+  go.addEventListener("click", function () { setTab("T"); });
+  res.appendChild(go);
+  res.hidden = false;
+  $("fDone").hidden = true;
+  $("toast").hidden = true;
+  res.scrollIntoView({ block: "start" });
+}
+
+/* ───────── 최종평가 20문제: 1~10 실전 빈칸, 11~20 코드 전체 쓰기 (응시할 때마다 일부 값이 바뀜) ───────── */
+var MENUS = [["예약신청", "reservation.jsp"], ["예약신청", "reservation.jsp"], ["예약현황", "reservationlist.jsp"], ["시설목록", "facilitylist.jsp"]];
+var SCREENS = [["체육대회", "학교축제", "현장체험학습"], ["체육대회", "학교축제", "현장체험학습"], ["축구장", "농구장", "체육관"], ["예약신청", "예약현황", "시설목록"]];
+var LASTS = [["reset", "[다시작성] 초기화 버튼을 작성하고자 한다.", "다시작성", ""], ["reset", "[다시작성] 초기화 버튼을 작성하고자 한다.", "다시작성", ""],
+  ["submit", "[예약등록] 전송 버튼을 작성하고자 한다.", "예약등록", ""], ["button", "클릭하면 index.jsp로 이동하는 [홈으로] 버튼을 작성하고자 한다.", "홈으로", " onclick=\"location.href='index.jsp'\""]];
+var T = { items: [], submitted: false, start: null, attempt: 0 };
+function makeFinal() {
+  return [
+    /* PART A: 실제 수행평가와 같은 10문제 */
+    { q: "header.jsp에서 style.css 파일을 연결하려고 한다. 빈칸을 완성하시오.", item: V("①", HEAD, "style.css", "", { cs: true }) },
+    { q: "index.jsp에서 header.jsp를 불러오도록 빈칸을 완성하시오. (② 두 곳에는 같은 답이 들어감)", item: V("②", "<body>\n    <{②} page=\"header.jsp\"></{②}>\n    <section> ... </section>\n</body>", "jsp:include", "") },
+    { q: "nav에서 「예약신청」을 클릭하면 reservation.jsp로 이동하도록 빈칸을 완성하시오.", item: A("③", "<nav>\n    <a {③}>예약신청</a>\n</nav>", "href", "reservation.jsp", "") },
+    { q: "메뉴 목록(ul) 안에서 목록의 항목 하나를 나타내도록 ④에 알맞은 태그 이름을 쓰시오.", screen: ["체육대회", "학교축제", "현장체험학습"], item: V("④", "<ul>\n    <{④}>체육대회</{④}>\n    <{④}>학교축제</{④}>\n    <{④}>현장체험학습</{④}>\n</ul>", "li", "") },
+    { q: "여러 입력칸과 버튼을 하나의 입력 양식으로 묶도록 ⑤에 알맞은 태그 이름을 쓰시오. (⑤ 두 곳에는 같은 답이 들어감)", item: V("⑤", "<{⑤}>\n    <table border=\"1\"> ... </table>\n</{⑤}>", "form", "") },
+    { q: "nav 안의 링크 밑줄을 제거하도록 ⑥에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑥", "nav a {\n    {⑥};\n}", "text-decoration", "none", "") },
+    { q: "table 자체를 페이지의 가운데에 배치하도록 ⑦에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑦", "table {\n    {⑦};\n}", "margin", TABLE_CENTER, "") },
+    { q: "버튼이 들어 있는 td에 td-center 클래스를 적용하였다. 이 셀의 내용을 가운데 정렬하도록 style.css의 ⑧에 알맞은 선택자를 쓰시오.", item: V("⑧", "<!-- register.jsp -->  <td colspan=\"2\" class=\"td-center\"> ... </td>\n/* style.css */\n{⑧} {\n    text-align: center;\n}", ".td-center", "") },
+    { q: "footer 글자를 세로 가운데로 배치하고자 한다. ⑨에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑨", "footer {\n    height: 70px;\n    {⑨};\n}", "line-height", "70px", "") },
+    { q: "[다시작성] 초기화 버튼을 작성하고자 한다. ⑩에 알맞은 값을 쓰시오.", item: V("⑩", "<input type=\"{⑩}\" value=\"다시작성\">", "reset", "") },
+    /* PART B: 알아 두면 좋은 10문제 */
+    { q: "스크롤해도 header가 움직이지 않도록 화면에 고정하려고 한다. ⑪에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑪", "header {\n    {⑪};\n    top: 0px;\n}", "position", "fixed", "") },
+    { q: "footer를 화면 맨 아래에 고정하려고 한다. ⑫에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑫", "footer {\n    position: fixed;\n    {⑫};\n}", "bottom", "0px", "") },
+    { q: "header의 높이가 70px일 때, nav를 header 바로 아래에 붙이려고 한다. ⑬에 알맞은 코드(속성: 값)를 쓰시오.", item: D("⑬", "header { position: fixed; top: 0px; height: 70px; }\nnav {\n    position: fixed;\n    {⑬};\n}", "top", "70px", "") },
+    { q: "아래 실행화면처럼 점(•)이 붙은 목록 전체를 감싸도록 ⑭에 알맞은 태그 이름을 쓰시오. (⑭ 두 곳에는 같은 답이 들어감)", screen: ["예약신청", "예약현황", "시설목록"], item: V("⑭", "<{⑭}>\n    <li>예약신청</li>\n    <li>예약현황</li>\n    <li>시설목록</li>\n</{⑭}>", "ul", "") },
+    { q: "nav 메뉴에서 「예약현황」을 클릭하면 reservationlist.jsp로 이동하도록 빈칸을 완성하시오.", item: A("⑮", "<ul>\n    <li><a {⑮}>예약현황</a></li>\n</ul>", "href", "reservationlist.jsp", "") },
+    { q: "시설명을 입력받는 입력칸을 작성하고자 한다. ⑯에 알맞은 값을 쓰시오.", item: V("⑯", "<input type=\"{⑯}\" name=\"facility_name\">", "text", "") },
+    { q: "수정 화면(update.jsp)에서 시설명 입력칸에 기존 데이터 「체육관」이 미리 보이도록 빈칸을 완성하시오.", item: A("⑰", "<input type=\"text\" name=\"facility_name\" {⑰}>", "value", "체육관", "") },
+    { q: "표에서 「시설명」이 제목 칸(굵고 가운데 정렬되는 칸)이 되도록 ⑱에 알맞은 태그 이름을 쓰시오. (⑱ 두 곳에는 같은 답이 들어감)", item: V("⑱", "<tr>\n    <{⑱}>시설명</{⑱}>\n    <td><input type=\"text\" name=\"facility_name\"></td>\n</tr>", "th", "") },
+    { q: "버튼이 들어 있는 칸이 가로 2칸을 합쳐 차지하도록 ⑲에 알맞은 값을 쓰시오.", item: V("⑲", "<tr>\n    <td colspan=\"{⑲}\" class=\"td-center\"> ... </td>\n</tr>", "2", "") },
+    { q: "style.css의 .td-center 규칙이 이 칸에 적용되도록 ⑳에 알맞은 값을 쓰시오. (HTML의 class 값)", item: V("⑳", "<td colspan=\"2\" class=\"{⑳}\"> ... </td>", "td-center", "") }
+  ];
+}
+function ctxPreFinal(text) {   // "[ 여기: ... ]" 표시도 지원
+  var pre = el("pre", "ctx");
+  var parts = text.split(/\[ 여기(?:: ([^\]]+))? \]/);
+  for (var i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) pre.appendChild(document.createTextNode(parts[i]));
+    else pre.appendChild(el("span", "blank", "____________ ← " + (parts[i] || "여기에 들어갈 코드")));
+  }
+  return pre;
+}
+function buildFinal() {
+  var made = makeFinal();
+  made.forEach(function (P, k) { P.real = k < 10; });          // 앞 10문제가 실제 수행평가 문제
+  T.items = shuffle(made); T.submitted = false; T.start = null;
+  T.items.forEach(function (P, k) {                             // 화면 번호에 맞게 빈칸 번호를 다시 매김
+    var old = P.item.mark, nw = NUM.charAt(k);
+    P.q = P.q.split(old).join(nw);
+    P.item.code = P.item.code.split(old).join(nw);
+    P.item.mark = nw;
+  });
+  var list = $("tList");
+  list.innerHTML = "";
+  T.items.forEach(function (P, i) {
+    var card = el("section", "card q");
+    var qh = el("div", "qh");
+    qh.appendChild(el("span", "no", (i + 1) + "."));
+    qh.appendChild(el("span", "qt", P.q));
+    card.appendChild(qh);
+    if (P.ctx) card.appendChild(ctxPreFinal(P.ctx));
+    var inp = answerBox(card, P.item, "t" + i, (i + 1) + "번 답", P.screen);
+    inp.addEventListener("input", function () { if (!T.start) T.start = Date.now(); });
+    var fb = el("div", "fb"); fb.hidden = true;
+    card.appendChild(fb);
+    list.appendChild(card);
+    P.inp = inp; P.fb = fb; P.card = card;
+  });
+  $("tRes").hidden = true;
+  updateBar();
+}
+function convert(n) { if (n >= 10) return 100; if (n === 0) return 55; if (n <= 2) return 60; return 100 - (10 - n) * 5; }
+function submitFinal() {
+  if (T.submitted) return;
+  var id = needId();
+  if (!id) { var w = $("warn"); w.textContent = "학번과 이름을 입력해야 채점됩니다."; w.hidden = false; return; }
+  $("warn").hidden = true;
+  T.submitted = true; T.attempt++;
+  var correct = 0, partA = 0, ox = [];
+  T.items.forEach(function (P) {
+    var errs = grade(P.item, P.inp.value), ok = !errs.length;
+    if (ok) { correct++; if (P.real) partA++; }
+    ox.push(ok);
+    P.inp.disabled = true;
+    P.card.classList.add(ok ? "okq" : "ngq");
+    P.fb.hidden = false;
+    renderErrs(P.fb, errs);
+  });
+  var now = new Date(), res = $("tRes");
+  res.innerHTML = "";
+  res.appendChild(el("p", "rtitle", "수행평가 대비 최종평가 결과"));
+  res.appendChild(whoLine(id));
+  res.appendChild(el("div", "score", (correct * 5) + "점"));
+  res.appendChild(el("p", "rdetail", "20문제 중 " + correct + "개 정답 (문제당 5점) · 걸린 시간 " + mmss(T.start ? now - T.start : 0)));
+  res.appendChild(el("p", "conv", "이 중 수행평가 문제 10개: " + partA + "개 정답 → 수행평가 채점 기준 환산 " + convert(partA) + "점"));
+  var g = el("div", "grid");
+  ox.forEach(function (ok, i) { var c = el("div", ok ? "o" : "x"); c.appendChild(document.createTextNode(String(i + 1))); c.appendChild(el("b", null, ok ? "O" : "X")); g.appendChild(c); });
+  res.appendChild(g);
+  res.appendChild(el("p", "meta", "제출 " + stamp(now) + " · " + T.attempt + "번째 응시"));
+  var again = el("button", "btn big", "순서를 바꿔 다시 풀기");
+  again.type = "button";
+  again.addEventListener("click", function () { buildFinal(); $("viewT").scrollIntoView({ block: "start" }); });
+  res.appendChild(again);
+  res.hidden = false;
+  updateBar();
+  $("toast").hidden = true;
+  res.scrollIntoView({ block: "start" });
+}
+
+/* ───────── 탭·바·차단 ───────── */
+var tab = "F";
+function setTab(k) {
+  if (k === "T" && !formDone()) {
+    var m = $("lockmsg");
+    m.textContent = "형성평가 20문제를 모두 풀어야 최종평가를 풀 수 있습니다. (지금 " + Object.keys(F.solved).length + " / 20)";
+    m.hidden = false;
+    return;
+  }
+  tab = k;
+  $("lockmsg").hidden = true;
+  $("tabF").setAttribute("aria-selected", k === "F" ? "true" : "false");
+  $("tabT").setAttribute("aria-selected", k === "T" ? "true" : "false");
+  $("viewF").hidden = k !== "F";
+  $("viewT").hidden = k !== "T";
+  updateBar();
+  window.scrollTo(0, 0);
+}
+function updateBar() {
+  $("bar").hidden = !(tab === "T" && !T.submitted);
+  $("timer").textContent = mmss(T.start ? Date.now() - T.start : 0);
+}
+setInterval(function () { if (tab === "T" && !T.submitted) $("timer").textContent = mmss(T.start ? Date.now() - T.start : 0); }, 1000);
+var toastT = null;
+function toast(msg) {
+  var t = $("toast");
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { t.hidden = true; }, 2400);
+}
+function blockInput(e) { e.preventDefault(); toast("복사·붙여넣기는 쓸 수 없습니다. 직접 입력하세요."); }
+function lockDuplicate() {
+  if (!$("dup").hidden) return;
+  $("fRes").hidden = true;
+  buildForm(); buildFinal(); setTab("F");
+  $("dup").hidden = false; $("bar").hidden = true;
+}
+function watchOtherWindows() {
+  var me = Math.random().toString(36).slice(2), send, ch = null;
+  function onMsg(x) { if (!x || x.id === me) return; if (x.type === "hello") send({ type: "here", id: me }); lockDuplicate(); }
+  try { ch = new BroadcastChannel("hwamyeon-exam-final-check"); } catch (e) { ch = null; }
+  if (ch) { ch.onmessage = function (e) { onMsg(e.data); }; send = function (x) { try { ch.postMessage(x); } catch (e) {} }; }
+  else {
+    window.addEventListener("storage", function (e) { if (e.key === "hwamyeon-exam-final-check" && e.newValue) { try { onMsg(JSON.parse(e.newValue)); } catch (x) {} } });
+    send = function (x) { try { x.t = Date.now(); localStorage.setItem("hwamyeon-exam-final-check", JSON.stringify(x)); } catch (e) {} };
+  }
+  send({ type: "hello", id: me });
+}
+
+(function init() {
+  buildForm();
+  buildFinal();
+  $("tabF").addEventListener("click", function () { setTab("F"); });
+  $("tabT").addEventListener("click", function () { setTab("T"); });
+  $("fDoneBtn").addEventListener("click", showFormResult);
+  $("submitBtn").addEventListener("click", submitFinal);
+  ["sid", "sname"].forEach(function (id) { $(id).addEventListener("input", function () { this.classList.remove("need"); }); });
+  ["copy", "cut", "paste", "drop", "dragstart"].forEach(function (t) { document.addEventListener(t, blockInput, true); });
+  document.addEventListener("beforeinput", function (e) { if (/^insertFrom(Paste|Drop|Yank)/.test(e.inputType || "")) blockInput(e); }, true);
+  document.addEventListener("contextmenu", function (e) { if (e.target && (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT")) e.preventDefault(); }, true);
+  setTab("F");
+  watchOtherWindows();
+})();
+</script>
+<script src="../../assets/config.js"></script>
+<script src="../../assets/common.js"></script>
+</body>
+</html>

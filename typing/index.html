@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>타자 연습</title>
+<link rel="stylesheet" href="../assets/common.css">
+<style>
+.course { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+.course h3 { margin: 0; font-size: 16px; }
+.course p { margin: 0; font-size: 13px; color: var(--sub); }
+.course .rec { font-size: 13px; font-weight: 700; color: var(--ok); }
+.course .act { grid-row: 1 / span 3; grid-column: 2; }
+.stage { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 22px 18px; text-align: center; }
+.stage .meter { display: flex; justify-content: center; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--code-dim); margin-bottom: 14px; font-variant-numeric: tabular-nums; }
+.stage .meter b { color: var(--code-text); font-size: 17px; }
+.target { font-family: Consolas, "D2Coding", Menlo, monospace; font-size: clamp(22px, 5vw, 34px); min-height: 1.6em; letter-spacing: .02em; white-space: pre-wrap; word-break: break-all; }
+.target .done { color: var(--code-ok); }
+.target .cur { border-bottom: 3px solid var(--code-key); }
+.target .bad { color: #17202b; background: var(--code-ng); border-radius: 3px; }
+.next { margin-top: 8px; font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 14px; color: var(--code-dim); min-height: 1.5em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.typein {
+  margin-top: 16px; width: 100%; max-width: 640px; font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 22px; text-align: center;
+  padding: 10px 12px; border-radius: 8px; border: 2px solid var(--code-line); background: #0b1017; color: var(--code-text); caret-color: var(--code-key);
+}
+.typein.err { border-color: var(--code-ng); }
+.typein:focus { outline: 3px solid var(--code-key); outline-offset: 2px; }
+.imewarn { margin-top: 10px; color: var(--code-ng); font-weight: 700; min-height: 1.5em; }
+.bar2 { height: 6px; background: var(--code-line); border-radius: 99px; overflow: hidden; margin-top: 14px; }
+.bar2 i { display: block; height: 100%; width: 0; background: var(--code-key); transition: width .15s; }
+</style>
+</head>
+<body data-wc-page>
+<main class="wrap">
+  <!-- 단계 고르기 -->
+  <section id="menu">
+    <h1>타자 연습</h1>
+    <p class="lead">수업 코드에 나오는 낱말과 기호를 손에 익힙니다. 정확도 90% 이상을 지키면서 타수를 올리세요. 한글이 나오면 한/영 키를 눌러 영어로 바꾸세요.</p>
+    <div class="grid" id="courses"></div>
+  </section>
+
+  <!-- 연습 -->
+  <section id="play" hidden>
+    <h1 id="cname"></h1>
+    <p class="lead" id="cdesc"></p>
+    <div class="stage">
+      <div class="meter"><span>남은 개수 <b id="left">0</b></span><span>타수 <b id="cpm">0</b></span><span>정확도 <b id="acc">100</b>%</span><span>시간 <b id="tm">00:00</b></span></div>
+      <div class="target" id="target" aria-live="polite"></div>
+      <div class="next" id="next"></div>
+      <input class="typein" id="typein" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="위에 보이는 글자를 그대로 입력">
+      <div class="imewarn" id="imewarn"></div>
+      <div class="bar2"><i id="prog"></i></div>
+    </div>
+    <p class="note" style="margin-top:10px">똑같이 다 치면 자동으로 다음으로 넘어갑니다. 틀린 글자는 지우고 다시 치세요. <a href="index.html">단계 목록으로</a></p>
+  </section>
+
+  <!-- 결과 -->
+  <section id="done" hidden>
+    <div class="card result" id="res"></div>
+  </section>
+</main>
+<script src="../assets/config.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  if (!WC.user()) return;
+  WC.blockPaste();
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  var PASS_ACC = 90;
+  var S = null, timer = null;
+
+  function menu() {
+    $("menu").hidden = false; $("play").hidden = true; $("done").hidden = true;
+    var box = $("courses"), rec = WC.records();
+    box.innerHTML = "";
+    WC_TYPING.forEach(function (c) {
+      var r = rec["typing:" + c.id];
+      var card = el("div", "card course");
+      card.appendChild(el("h3", null, c.name));
+      card.appendChild(el("p", null, c.desc + " · 목표 " + c.goal + "타"));
+      card.appendChild(el("div", "rec", r ? "최고 " + r.best + "타 (" + r.bestDetail + ") · " + r.count + "회" : ""));
+      var b = el("button", "btn act", r ? "다시" : "시작"); b.type = "button";
+      b.addEventListener("click", function () { start(c); });
+      card.appendChild(b);
+      box.appendChild(card);
+    });
+  }
+
+  function start(c) {
+    var pool = shuffle(c.items), list = [];
+    while (list.length < c.count) list = list.concat(shuffle(pool));
+    S = { c: c, list: list.slice(0, c.count), i: 0, ok: 0, err: 0, start: null, prevLen: 0, wasBad: false };
+    $("menu").hidden = true; $("done").hidden = true; $("play").hidden = false;
+    $("cname").textContent = c.name; $("cdesc").textContent = c.desc + " · " + c.count + "개 · 목표 " + c.goal + "타, 정확도 " + PASS_ACC + "% 이상";
+    $("typein").value = ""; $("typein").classList.remove("err"); $("imewarn").textContent = "";
+    draw(); stats();
+    clearInterval(timer); timer = setInterval(stats, 500);
+    $("typein").focus();
+    window.scrollTo(0, 0);
+  }
+
+  function draw() {
+    var t = S.list[S.i], v = $("typein").value, box = $("target");
+    box.innerHTML = "";
+    var good = 0;
+    while (good < v.length && good < t.length && v.charAt(good) === t.charAt(good)) good++;
+    var bad = v.length > good;
+    if (good) box.appendChild(el("span", "done", t.slice(0, good)));
+    if (good < t.length) {
+      box.appendChild(el("span", bad ? "bad" : "cur", t.charAt(good)));
+      box.appendChild(document.createTextNode(t.slice(good + 1)));
+    }
+    $("typein").classList.toggle("err", bad);
+    $("next").textContent = S.list.slice(S.i + 1, S.i + 4).join("    ");
+    $("left").textContent = S.list.length - S.i;
+    $("prog").style.width = (S.i / S.list.length * 100) + "%";
+    return { good: good, bad: bad };
+  }
+  function speed() { if (!S.start) return 0; var min = (Date.now() - S.start) / 60000; return min > 0 ? Math.round(S.ok / min) : 0; }
+  function accuracy() { var tot = S.ok + S.err; return tot ? Math.round(S.ok / tot * 100) : 100; }
+  function stats() {
+    if (!S) return;
+    $("cpm").textContent = speed(); $("acc").textContent = accuracy();
+    $("tm").textContent = WC.mmss(S.start ? Date.now() - S.start : 0);
+  }
+
+  $("typein").addEventListener("input", function () {
+    if (!S) return;
+    var inp = $("typein"), v = inp.value;
+    if (/[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(v)) {             // 한글 입력 상태
+      inp.value = v.replace(/[ㄱ-ㅎㅏ-ㅣ가-힣]/g, "");
+      $("imewarn").textContent = "한글이 입력되고 있습니다. 한/영 키를 눌러 영어로 바꾸세요.";
+      draw(); return;
+    }
+    $("imewarn").textContent = "";
+    if (!S.start && v.length) S.start = Date.now();
+    var t = S.list[S.i], d = draw();
+    if (v.length > S.prevLen) {                   // 새로 친 글자만 센다
+      if (d.bad) { if (!S.wasBad || v.length > S.prevLen) S.err += v.length - S.prevLen; }
+      else S.ok += v.length - S.prevLen;
+    }
+    S.prevLen = v.length; S.wasBad = d.bad;
+    if (v === t) {
+      S.i++; inp.value = ""; S.prevLen = 0; S.wasBad = false;
+      if (S.i >= S.list.length) return finish();
+      draw();
+    }
+    stats();
+  });
+
+  function finish() {
+    clearInterval(timer);
+    var c = S.c, sp = speed(), ac = accuracy(), time = Date.now() - S.start, u = WC.user();
+    var pass = ac >= PASS_ACC && sp >= c.goal;
+    WC.addRecord("typing:" + c.id, { group: "타자 연습", title: c.name, score: sp, unit: "타", detail: "정확도 " + ac + "%", pass: pass });
+    $("play").hidden = true; $("done").hidden = false;
+    var res = $("res"); res.innerHTML = "";
+    res.appendChild(el("p", "rtitle", "타자 연습 결과 · " + c.name));
+    res.appendChild(el("p", "who", u.sid + " " + u.name));
+    var sc = el("div", "score", String(sp)); sc.appendChild(el("small", null, " 타")); res.appendChild(sc);
+    res.appendChild(el("p", "rdetail", "정확도 " + ac + "% · 오타 " + S.err + "번 · 걸린 시간 " + WC.mmss(time) + " · " + WC.stamp(Date.now())));
+    if (pass) res.appendChild(el("div", "stamp", "✓ 목표 달성 (" + c.goal + "타 · 정확도 " + PASS_ACC + "% 이상)"));
+    else res.appendChild(el("p", "again", ac < PASS_ACC ? "정확도가 " + PASS_ACC + "%보다 낮습니다. 천천히, 틀리지 않게 다시 해 보세요." : "목표 " + c.goal + "타까지 " + (c.goal - sp) + "타 남았습니다. 한 번 더!"));
+    var row = el("div", "row");
+    var again = el("button", "btn", "한 번 더"); again.type = "button"; again.addEventListener("click", function () { start(c); });
+    var idx = WC_TYPING.indexOf(c), nextC = WC_TYPING[idx + 1];
+    row.appendChild(again);
+    if (nextC) { var nb = el("button", "btn ghost", "다음 단계: " + nextC.name); nb.type = "button"; nb.addEventListener("click", function () { start(nextC); }); row.appendChild(nb); }
+    else { var cb = el("a", "btn ghost", "코드 연습으로 가기"); cb.href = "../code/index.html"; row.appendChild(cb); }
+    var mb = el("button", "btn ghost", "단계 목록"); mb.type = "button"; mb.addEventListener("click", menu); row.appendChild(mb);
+    res.appendChild(row);
+    S = null;
+    window.scrollTo(0, 0);
+  }
+  menu();
+})();
+</script>
+</body>
+</html>
