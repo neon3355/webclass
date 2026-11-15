@@ -23,6 +23,13 @@
 .hello .path { font-size: 13px; color: var(--code-key); margin: 0 0 4px; }
 .hello h1 { color: #fff; }
 .hello p { margin: 0; color: #b9c6d8; font-size: 15px; }
+.tabs2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.tabs2 button { font: inherit; font-weight: 700; padding: 9px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--sub); cursor: pointer; }
+.tabs2 button[aria-pressed=true] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.now { border: 2px solid var(--accent); margin-bottom: 20px; }
+.now .k { font-size: 13px; font-weight: 700; color: var(--accent); margin: 0; }
+.now h2 { margin: 2px 0 4px; font-size: 20px; }
+.now p { margin: 0; color: var(--sub); font-size: 14px; }
 </style>
 </head>
 <body data-wc-page data-wc-home>
@@ -30,69 +37,114 @@
   <!-- 입장 -->
   <section class="login" id="login" hidden>
     <h1>화면구현 연습실</h1>
-    <p class="lead">학번과 이름을 입력하고 시작하세요.</p>
+    <p class="lead" id="loginLead">학번과 이름을 입력하고 시작하세요.</p>
+    <div class="tabs2" id="modeTabs" hidden role="group" aria-label="로그인 또는 회원가입">
+      <button type="button" id="mLogin" aria-pressed="true">로그인</button>
+      <button type="button" id="mJoin" aria-pressed="false">회원가입</button>
+    </div>
     <form class="card" id="loginForm">
-      <label class="field" for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
+      <label class="field" for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 20101" maxlength="5"></label>
       <label class="field" for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
+      <label class="field" for="spw" id="pwField" hidden>비밀번호<input type="password" id="spw" autocomplete="off" placeholder="4글자 이상" maxlength="30"></label>
+      <label class="field" for="spw2" id="pw2Field" hidden>비밀번호 한 번 더<input type="password" id="spw2" autocomplete="off" maxlength="30"></label>
       <div class="warnbox" id="loginWarn" hidden></div>
-      <button class="btn big" type="submit">시작하기</button>
-      <p class="note">입력한 학번과 이름은 모든 화면의 오른쪽 위에 표시되고, 연습 기록과 함께 이 컴퓨터의 브라우저에만 저장됩니다.</p>
+      <button class="btn big" type="submit" id="loginBtn">시작하기</button>
+      <p class="note" id="loginNote">입력한 학번과 이름은 모든 화면의 오른쪽 위에 표시되고, 연습 기록과 함께 이 컴퓨터의 브라우저에만 저장됩니다.</p>
     </form>
+    <p class="note" style="text-align:center;margin-top:14px"><a href="admin/index.html">선생님(관리자) 화면</a></p>
   </section>
 
   <!-- 홈 -->
   <section id="home" hidden>
     <div class="hello">
-      <p class="path mono">webclass / style.css · header.jsp · footer.jsp · index.jsp</p>
+      <p class="path mono" id="clsLine"></p>
       <h1 id="hi"></h1>
       <p>오늘도 위에서부터 차례로 하세요. 손이 코드를 기억할 때까지 직접 쓰는 것이 목표입니다.</p>
     </div>
+    <div class="card now" id="now" hidden><p class="k" id="nowK"></p><h2 id="nowT"></h2><p id="nowD"></p></div>
     <h2>오늘의 순서</h2>
     <div class="steps">
       <a class="card step" href="typing/index.html"><div class="n">1</div><div><h3>타자 연습</h3><p>수업 코드에 나오는 낱말 → 기호 → 코드 한 줄. 타수와 정확도를 잽니다.</p><div class="st" id="st1"></div></div><span class="go">시작 →</span></a>
-      <a class="card step" href="code/index.html"><div class="n">2</div><div><h3>코드 보고 쓰기</h3><p>style.css와 JSP 파일을 한 줄씩 보고 따라 씁니다.</p><div class="st" id="st2"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="code/index.html"><div class="n">2</div><div><h3>코드 보고 쓰기</h3><p>이번 과제의 style.css와 JSP 파일을 한 줄씩 보고 따라 씁니다. 실행 화면도 함께 보입니다.</p><div class="st" id="st2"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="code/index.html"><div class="n">3</div><div><h3>코드 외워 쓰기</h3><p>코드는 가리고 설명만 보고 씁니다. 보고 쓰기를 끝낸 파일부터 도전하세요.</p><div class="st" id="st3"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="quiz/index.html"><div class="n">4</div><div><h3>형성평가</h3><p>배운 내용을 문제로 확인합니다.</p><div class="st" id="st4"></div></div><span class="go">시작 →</span></a>
-      <a class="card step" href="report/index.html"><div class="n">5</div><div><h3>내 과제 현황 제출</h3><p>오늘 한 활동이 표 한 장으로 정리됩니다. 화면을 캡처해서 제출하세요.</p><div class="st" id="st5"></div></div><span class="go">보기 →</span></a>
+      <a class="card step" href="report/index.html"><div class="n">5</div><div><h3>내 과제 현황</h3><p>오늘 한 활동과 날짜별 연습 기록을 봅니다.</p><div class="st" id="st5"></div></div><span class="go">보기 →</span></a>
     </div>
   </section>
 </main>
 <script src="assets/config.js"></script>
+<script src="assets/data.js"></script>
 <script src="assets/common.js"></script>
 <script>
 (function () {
+  function $(id) { return document.getElementById(id); }
+  var join = false;
   function show() {
     var u = WC.user();
-    document.getElementById("login").hidden = !!u;
-    document.getElementById("home").hidden = !u;
-    if (!u) return;
-    document.getElementById("hi").textContent = u.name + " 학생, 반갑습니다.";
+    $("login").hidden = !!u; $("home").hidden = !u;
+    if (!u) {
+      if (WC.online) { $("modeTabs").hidden = false; $("pwField").hidden = false; mode(false); }
+      return;
+    }
+    $("hi").textContent = u.name + " 학생, 반갑습니다.";
+    $("clsLine").textContent = WC.clsName(WC.clsOf(u.sid)) + "반 · " + u.sid;
+    paint();
+    if (WC.online) WC.sync().then(function (ok) { if (ok) paint(); });
+  }
+  function paint() {
+    var as = WC.assignments(), cur = as[as.length - 1];
+    if (WC.online) {
+      $("now").hidden = false;
+      $("nowK").textContent = cur ? "이번 과제 · " + cur.name : "이번 과제";
+      $("nowT").textContent = cur ? cur.title : "아직 배포된 과제가 없습니다";
+      $("nowD").textContent = cur ? cur.files.map(function (f) { return f.name; }).join(" · ") : "선생님이 과제를 배포하면 여기에 나타납니다. 그동안 타자 연습을 하세요.";
+    }
     var rec = WC.records(), today = WC.today(), t = { typing: 0, see: 0, mem: 0, quiz: 0, all: 0 }, bestSpeed = 0;
     Object.keys(rec).forEach(function (id) {
-      var r = rec[id], isToday = WC.today(new Date(r.lastTs)) === today;
-      if (!isToday) return;
+      var r = rec[id];
+      if (WC.today(r.lastTs) !== today) return;
       t.all++;
       if (id.indexOf("typing:") === 0) { t.typing++; bestSpeed = Math.max(bestSpeed, r.best); }
       else if (id.indexOf("code:") === 0 && /:1$/.test(id)) t.see++;
       else if (id.indexOf("code:") === 0 && /:2$/.test(id)) t.mem++;
       else if (id.indexOf("quiz:") === 0) t.quiz++;
     });
-    function set(id, txt) { document.getElementById(id).textContent = txt; }
+    function set(id, txt) { $(id).textContent = txt; }
     set("st1", t.typing ? "오늘 " + t.typing + "단계 연습 · 최고 " + bestSpeed + "타" : "");
-    set("st2", t.see ? "오늘 " + t.see + "개 파일 완료" : "");
-    set("st3", t.mem ? "오늘 " + t.mem + "개 파일 완료" : "");
+    set("st2", t.see ? "오늘 " + t.see + "개 파일 연습" : "");
+    set("st3", t.mem ? "오늘 " + t.mem + "개 파일 연습" : "");
     set("st4", t.quiz ? "오늘 " + t.quiz + "개 평가 채점" : "");
     set("st5", t.all ? "오늘 기록 " + t.all + "개" : "");
   }
-  document.getElementById("loginForm").addEventListener("submit", function (e) {
+  function mode(j) {
+    join = j;
+    $("mLogin").setAttribute("aria-pressed", String(!j)); $("mJoin").setAttribute("aria-pressed", String(j));
+    $("pw2Field").hidden = !j;
+    $("loginBtn").textContent = j ? "회원가입" : "로그인";
+    $("loginLead").textContent = j ? "처음이면 학번·이름·비밀번호를 정해서 가입하세요." : "학번·이름·비밀번호로 로그인하세요.";
+    $("loginNote").textContent = j ? "비밀번호는 선생님이 확인할 수 있습니다. 다른 사이트에서 쓰는 비밀번호는 쓰지 마세요." : "처음이면 위의 [회원가입]을 누르세요. 비밀번호를 잊었으면 선생님께 물어보세요.";
+    $("loginWarn").hidden = true;
+  }
+  $("mLogin").addEventListener("click", function () { mode(false); });
+  $("mJoin").addEventListener("click", function () { mode(true); });
+  $("loginForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    var sid = document.getElementById("sid"), name = document.getElementById("sname"), w = document.getElementById("loginWarn");
-    var s = sid.value.trim(), n = name.value.trim();
-    sid.classList.toggle("need", !s); name.classList.toggle("need", !n);
-    if (!s || !n) { w.textContent = "학번과 이름을 모두 입력하세요."; w.hidden = false; (!s ? sid : name).focus(); return; }
-    if (!/^[0-9]{3,10}$/.test(s)) { w.textContent = "학번은 숫자로만 입력하세요. (예: 10315)"; w.hidden = false; sid.classList.add("need"); sid.focus(); return; }
-    WC.setUser(s, n);
-    location.reload();
+    var sid = $("sid"), name = $("sname"), pw = $("spw"), w = $("loginWarn");
+    var s = sid.value.trim(), n = name.value.trim(), p = pw.value;
+    function warn(msg, el) { w.textContent = msg; w.hidden = false; if (el) { el.classList.add("need"); el.focus(); } }
+    [sid, name, pw].forEach(function (x) { x.classList.remove("need"); });
+    if (!s) return warn("학번을 입력하세요.", sid);
+    if (!/^[0-9]{5}$/.test(s)) return warn("학번은 숫자 5자리로 입력하세요. (예: 20101)", sid);
+    if (!n) return warn("이름을 입력하세요.", name);
+    if (!WC.online) { WC.setUser({ sid: s, name: n }); location.reload(); return; }
+    if (p.length < 4) return warn("비밀번호는 4글자 이상입니다.", pw);
+    if (join && p !== $("spw2").value) return warn("비밀번호 두 칸이 서로 다릅니다.", $("spw2"));
+    var btn = $("loginBtn"); btn.disabled = true; w.hidden = true; btn.textContent = "확인하는 중…";
+    WC.api(join ? "signup" : "login", { sid: s, name: n, pw: p }).then(function (res) {
+      if (!res.ok) { btn.disabled = false; btn.textContent = join ? "회원가입" : "로그인"; return warn(res.msg); }
+      WC.setUser({ sid: res.sid, name: res.name, token: res.token, assign: res.assign });
+      return WC.sync().then(function () { location.reload(); });
+    }).catch(function () { btn.disabled = false; btn.textContent = join ? "회원가입" : "로그인"; warn("서버에 연결하지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 보세요."); });
   });
   show();
 })();

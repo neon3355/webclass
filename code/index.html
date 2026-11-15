@@ -13,7 +13,25 @@
 .file .sts { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; min-height: 22px; }
 .head2 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .head2 .meta { margin-left: auto; font-size: 14px; color: var(--sub); font-variant-numeric: tabular-nums; }
-.codepanel { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 12px 0; font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 15px; line-height: 1.7; overflow-x: auto; }
+.codepanel { background: var(--code-bg); color: var(--code-text); border-radius: 12px; padding: 12px 0; font-family: Consolas, "D2Coding", Menlo, monospace; font-size: 15px; line-height: 1.7; overflow: auto; max-height: 62vh; }
+.haspv .codepanel { max-height: 40vh; }
+.cols { display: flex; flex-direction: column; }
+.cols .pv { order: 2; margin: 12px 0 0; }
+@media (min-width: 1000px) {
+  main.wide { max-width: 1280px; }
+  .haspv .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  .haspv .cols .pv { order: 2; margin: 0; }
+  .haspv .codepanel { max-height: 58vh; }
+}
+.pv { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-bottom: 12px; background: var(--card); }
+.pv .pvh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 6px 10px; background: var(--accent-soft); font-size: 13px; font-weight: 700; }
+.pv .pvh .url { font-family: Consolas, "D2Coding", Menlo, monospace; font-weight: 400; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 1px 10px; }
+.pv .pvh .sw { margin-left: auto; display: flex; gap: 4px; }
+.pv .pvh button { font: inherit; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--sub); cursor: pointer; }
+.pv .pvh button[aria-pressed=true] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.pv .pvbox { overflow: hidden; }
+.pv iframe { display: block; width: 100%; height: 400px; border: 0; background: #fff; pointer-events: none; transform-origin: 0 0; }
+.asg { margin: 22px 0 10px; } .asg h2 { margin: 0; } .asg p { margin: 0; color: var(--sub); font-size: 14px; }
 .ln { display: grid; grid-template-columns: 44px 1fr; white-space: pre; padding-right: 14px; }
 .ln .no { text-align: right; padding-right: 12px; color: var(--code-dim); user-select: none; font-size: 12px; line-height: 2.1; }
 .ln.auto .tx { color: var(--code-dim); font-style: italic; }
@@ -39,14 +57,21 @@
   <section id="menu" hidden>
     <h1>코드 연습</h1>
     <p class="lead">수업 코드를 한 줄씩 직접 씁니다. 먼저 <b>보고 쓰기</b>로 손에 익히고, 그다음 <b>외워 쓰기</b>로 설명만 보고 써 보세요. 들여쓰기와 띄어쓰기 개수는 달라도 됩니다.</p>
-    <div class="grid" id="files"></div>
+    <div id="files"></div>
   </section>
 
   <!-- 연습 -->
   <section id="play" hidden>
     <div class="head2"><h1 id="fname" class="mono"></h1><span class="badge mid" id="mname"></span><span class="meta">줄 <b id="pi">0</b> / <b id="pn">0</b> · 시간 <b id="tm">00:00</b></span></div>
     <p class="lead" id="mdesc"></p>
+    <div class="cols">
+    <div class="pv" id="pv" hidden>
+      <div class="pvh"><span>실행 화면</span><span class="url" id="pvUrl"></span>
+        <span class="sw" role="group" aria-label="실행 화면 종류"><button type="button" id="pvLive" aria-pressed="true">지금까지 쓴 코드</button><button type="button" id="pvFull" aria-pressed="false">완성 화면</button></span></div>
+      <div class="pvbox" id="pvBox"><iframe id="pvFrame" title="실행 화면 미리보기" sandbox="" tabindex="-1"></iframe></div>
+    </div>
     <div class="codepanel" id="panel"></div>
+    </div>
     <p class="legend2">회색 기울임 글씨는 Eclipse가 자동으로 만들어 주는 줄이라 쓰지 않습니다. 파란 줄이 지금 쓸 줄입니다.</p>
     <div class="dock">
       <div class="rowin">
@@ -80,34 +105,81 @@
   /* ───── 목록 ───── */
   function menu() {
     $("menu").hidden = false; $("play").hidden = true; $("done").hidden = true;
-    var box = $("files"), rec = WC.records();
+    var box = $("files"), rec = WC.records(), as = WC.assignments().slice().reverse();
     box.innerHTML = "";
-    WC_FILES.forEach(function (f) {
-      var n = f.lines.filter(function (l) { return l.t; }).length;
-      var card = el("div", "card file");
-      card.appendChild(el("h3", null, f.name));
-      card.appendChild(el("p", null, f.desc + " · 직접 쓰는 줄 " + n + "개"));
-      var sts = el("div", "sts");
-      [1, 2].forEach(function (m) {
-        var r = rec["code:" + f.id + ":" + m];
-        if (r) sts.appendChild(el("span", "badge " + (r.pass ? "ok" : "mid"), MODES[m].name + " " + (r.pass ? "완료" : "도움 받음") + " · " + r.count + "회"));
+    if (!as.length) { box.appendChild(el("p", "card", "아직 배포된 과제가 없습니다. 선생님이 과제를 배포하면 여기에 나타납니다. 그동안 타자 연습을 하세요.")); return; }
+    as.forEach(function (A, i) {
+      var head = el("div", "asg");
+      head.appendChild(el("h2", null, (WC.online ? (i === 0 ? "이번 과제 · " : "지난 과제 · ") : "") + A.name + " — " + A.title));
+      box.appendChild(head);
+      var grid = el("div", "grid");
+      A.files.forEach(function (f) {
+        var n = f.lines.filter(function (l) { return l.t; }).length;
+        var card = el("div", "card file");
+        card.appendChild(el("h3", null, f.name));
+        card.appendChild(el("p", null, f.desc + " · 직접 쓰는 줄 " + n + "개"));
+        var sts = el("div", "sts");
+        [1, 2].forEach(function (m) {
+          var r = rec["code:" + A.id + ":" + f.id + ":" + m];
+          if (r) sts.appendChild(el("span", "badge " + (r.pass ? "ok" : "mid"), MODES[m].name + " " + (r.pass ? "완료" : "도움 받음") + " · " + r.count + "회"));
+        });
+        card.appendChild(sts);
+        var acts = el("div", "acts");
+        [1, 2].forEach(function (m) {
+          var a = el("a", "btn" + (m === 2 ? " ghost" : ""), MODES[m].name); a.href = "?a=" + A.id + "&f=" + f.id + "&m=" + m; acts.appendChild(a);
+        });
+        card.appendChild(acts);
+        grid.appendChild(card);
       });
-      card.appendChild(sts);
-      var acts = el("div", "acts");
-      [1, 2].forEach(function (m) {
-        var a = el("a", "btn" + (m === 2 ? " ghost" : ""), MODES[m].name); a.href = "?f=" + f.id + "&m=" + m; acts.appendChild(a);
-      });
-      if (f.id === "style") { var b = el("a", "btn ghost", "백지 쓰기"); b.href = "../quiz/style-practice/index.html"; acts.appendChild(b); }
-      card.appendChild(acts);
-      box.appendChild(card);
+      box.appendChild(grid);
     });
   }
 
+  /* ───── 실행 화면 미리보기 ─────
+     JSP를 Tomcat에서 실행했을 때 브라우저에 보이는 화면을 흉내 냅니다.
+     jsp:include 는 그 파일의 내용으로 바꾸고, style.css 는 link 가 연결된 뒤에만 적용합니다. */
+  var pvFull = false;
+  function fileOf(A, id) { return A.files.filter(function (x) { return x.id === id; })[0]; }
+  function bodyHtml(A, lines, all) {      // lines: 연습 중인 줄(상태 포함) 또는 원본 줄
+    var html = "", css = false, inBody = false;
+    lines.forEach(function (l) {
+      if (l.auto) { if (/^<body>/.test(l.auto)) inBody = true; if (/^<\/body>/.test(l.auto)) inBody = false; return; }
+      if (!l.t || !(all || l.st === "done" || l.st === "help")) return;
+      var t = fill(l.t);
+      if (/<link [^>]*style\.css/.test(t)) { css = true; return; }
+      var inc = /<jsp:include page="(\w+)\.jsp">/.exec(t);
+      if (inc) { var f = fileOf(A, inc[1]); if (f) { var sub = bodyHtml(A, f.lines, true); html += sub.html; css = css || sub.css; } return; }
+      if (inBody) html += t.replace(/\son\w+="[^"]*"/g, "") + "\n";   // 미리보기에서는 onclick 을 실행하지 않음
+    });
+    return { html: html, css: css };
+  }
+  function drawPreview() {
+    var has = !!S && S.f.id !== "style";
+    $("pv").hidden = !has; $("play").classList.toggle("haspv", has); document.querySelector("main").classList.toggle("wide", has);
+    if (!has) return;
+    fitPreview();
+    $("pvUrl").textContent = "localhost:8080/…/" + S.f.name;
+    $("pvLive").setAttribute("aria-pressed", String(!pvFull)); $("pvFull").setAttribute("aria-pressed", String(pvFull));
+    var r = bodyHtml(S.A, pvFull ? S.f.lines : S.lines, pvFull);
+    var css = r.css ? fileOf(S.A, "style").lines.map(function (l) { return l.t || ""; }).join("\n") : "";
+    var doc = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><style>" + css + "</style></head><body>" + r.html + "</body></html>";
+    if (S.pvDoc !== doc) { S.pvDoc = doc; $("pvFrame").srcdoc = doc; }
+  }
+  /* 좁은 화면에서는 640px 너비로 그린 뒤 줄여서 보여 줌 (글자가 잘리지 않게) */
+  function fitPreview() {
+    var box = $("pvBox"), fr = $("pvFrame"), w = box.clientWidth, k = w && w < 640 ? w / 640 : 1;
+    fr.style.width = k < 1 ? "640px" : "100%"; fr.style.transform = k < 1 ? "scale(" + k + ")" : ""; box.style.height = Math.round(400 * k) + "px";
+  }
+  window.addEventListener("resize", function () { if (S) fitPreview(); });
+  $("pvLive").addEventListener("click", function () { pvFull = false; drawPreview(); $("codein").focus(); });
+  $("pvFull").addEventListener("click", function () { pvFull = true; drawPreview(); $("codein").focus(); });
+
   /* ───── 연습 ───── */
   var S = null, timer = null;
-  function start(f, m) {
+  function start(A, f, m) {
     var lines = f.lines.map(function (l) { return { t: l.t ? fill(l.t) : null, auto: l.auto, blank: l.blank, h: l.h ? fill(l.h) : "", in: l.in || 0, st: l.t ? "todo" : "auto" }; });
-    S = { f: f, m: m, lines: lines, cur: -1, start: null, tries: 0, firstOk: 0, helped: 0, errs: 0, total: lines.filter(function (l) { return l.t; }).length, doneN: 0 };
+    pvFull = false;
+    S = { A: A, f: f, m: m, lines: lines, cur: -1, start: null, tries: 0, firstOk: 0, helped: 0, errs: 0, total: lines.filter(function (l) { return l.t; }).length, doneN: 0 };
     $("menu").hidden = true; $("done").hidden = true; $("play").hidden = false;
     $("fname").textContent = f.name; $("mname").textContent = MODES[m].name; $("mdesc").textContent = MODES[m].desc;
     $("pn").textContent = S.total; $("peekBtn").hidden = m !== 2;
@@ -143,7 +215,8 @@
       p.appendChild(row);
     });
     $("pi").textContent = S.doneN;
-    if (curEl) curEl.scrollIntoView({ block: "center" });
+    if (curEl) p.scrollTop = Math.max(0, curEl.offsetTop - p.offsetTop - p.clientHeight / 2);
+    drawPreview();
   }
   function msg(cls, parts) {
     var m = $("msg"); m.className = "msg " + cls; m.innerHTML = "";
@@ -184,10 +257,10 @@
 
   function finish() {
     clearInterval(timer);
-    var f = S.f, m = S.m, time = S.start ? Date.now() - S.start : 0;
+    var A = S.A, f = S.f, m = S.m, time = S.start ? Date.now() - S.start : 0;
     var acc = Math.round(S.firstOk / S.total * 100), pass = m === 1 ? true : S.helped === 0;
     var detail = "한 번에 맞힌 줄 " + S.firstOk + "/" + S.total + (m === 2 ? " · 도움 받은 줄 " + S.helped : "") + " · " + WC.mmss(time);
-    WC.addRecord("code:" + f.id + ":" + m, { group: "코드 연습", title: f.name + " " + MODES[m].name, score: acc, unit: "%", detail: detail, pass: pass });
+    WC.addRecord("code:" + A.id + ":" + f.id + ":" + m, { group: "코드 연습", title: A.name + " · " + f.name + " " + MODES[m].name, score: acc, unit: "%", detail: detail, pass: pass });
     $("play").hidden = true; $("done").hidden = false;
     var res = $("res"); res.innerHTML = "";
     res.appendChild(el("p", "rtitle", "코드 연습 결과 · " + f.name + " " + MODES[m].name));
@@ -197,11 +270,11 @@
     if (pass) res.appendChild(el("div", "stamp", "✓ " + f.name + " " + MODES[m].name + " 완료"));
     else res.appendChild(el("p", "again", "도움 받은 줄이 " + S.helped + "개 있습니다. [보기] 없이 끝까지 쓸 수 있을 때까지 다시 해 보세요."));
     var row = el("div", "row");
-    var again = el("a", "btn ghost", "한 번 더"); again.href = "?f=" + f.id + "&m=" + m; row.appendChild(again);
-    if (m === 1) { var nx = el("a", "btn", "외워 쓰기 도전"); nx.href = "?f=" + f.id + "&m=2"; row.appendChild(nx); }
+    var again = el("a", "btn ghost", "한 번 더"); again.href = "?a=" + A.id + "&f=" + f.id + "&m=" + m; row.appendChild(again);
+    if (m === 1) { var nx = el("a", "btn", "외워 쓰기 도전"); nx.href = "?a=" + A.id + "&f=" + f.id + "&m=2"; row.appendChild(nx); }
     else {
-      var idx = WC_FILES.indexOf(f), nf = WC_FILES[idx + 1];
-      if (nf) { var nb = el("a", "btn", "다음 파일: " + nf.name); nb.href = "?f=" + nf.id + "&m=1"; row.appendChild(nb); }
+      var idx = A.files.indexOf(f), nf = A.files[idx + 1];
+      if (nf) { var nb = el("a", "btn", "다음 파일: " + nf.name); nb.href = "?a=" + A.id + "&f=" + nf.id + "&m=1"; row.appendChild(nb); }
     }
     var mb = el("a", "btn ghost", "파일 목록"); mb.href = "index.html"; row.appendChild(mb);
     res.appendChild(row);
@@ -209,8 +282,14 @@
     window.scrollTo(0, 0);
   }
 
-  var q = new URLSearchParams(location.search), f = WC_FILES.filter(function (x) { return x.id === q.get("f"); })[0], m = q.get("m") === "2" ? 2 : 1;
-  if (f) start(f, m); else menu();
+  var q = new URLSearchParams(location.search), m = q.get("m") === "2" ? 2 : 1;
+  function go() {
+    var A = WC.assignments().filter(function (x) { return x.id === q.get("a"); })[0];
+    var f = A && A.files.filter(function (x) { return x.id === q.get("f"); })[0];
+    if (f) start(A, f, m); else menu();
+  }
+  go();
+  if (WC.online && !q.get("f")) WC.sync().then(function (ok) { if (ok) menu(); });   // 새로 배포된 과제 확인
 })();
 </script>
 </body>

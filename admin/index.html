@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>관리자</title>
+<link rel="stylesheet" href="../assets/common.css">
+<style>
+.wrap { max-width: 1180px; }
+.login { max-width: 420px; margin: 40px auto 0; display: grid; gap: 12px; }
+.bar3 { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.bar3 select { font: inherit; font-size: 16px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); }
+.bar3 .sp { margin-left: auto; display: flex; gap: 8px; }
+.btn.sm { padding: 6px 12px; font-size: 14px; }
+.asg { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+.asg.on { border: 2px solid var(--ok); }
+.asg h3 { margin: 0; font-size: 16px; } .asg p { margin: 0; font-size: 13px; color: var(--sub); }
+.asg .act { grid-row: 1 / span 2; grid-column: 2; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+table.tbl td, table.tbl th { white-space: nowrap; }
+table.tbl td.c, table.tbl th.c { text-align: center; }
+table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(--accent-soft); }
+.m { display: inline-block; min-width: 22px; padding: 0 5px; border-radius: 5px; font-size: 12px; font-weight: 800; text-align: center; border: 1px solid var(--line); color: var(--sub); }
+.m.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.m.mid { background: var(--mid-soft); color: var(--mid); border-color: var(--mid); }
+.pw { font-family: Consolas, "D2Coding", Menlo, monospace; }
+.legend { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
+.detail h3 { margin: 0 0 2px; } .detail .sub { margin: 0 0 10px; color: var(--sub); font-size: 14px; }
+.msg { font-weight: 700; min-height: 1.5em; margin: 0; }
+</style>
+</head>
+<body data-wc-page data-wc-home>
+<main class="wrap">
+  <section id="off" hidden>
+    <h1>관리자</h1>
+    <div class="card"><p style="margin:0">아직 서버(구글 시트)가 연결되지 않았습니다. 저장소의 <b>README.md → 서버 설정</b>을 따라 한 뒤 <code>assets/config.js</code>의 <code>apiUrl</code>에 주소를 넣으면 이 화면을 쓸 수 있습니다.</p></div>
+  </section>
+
+  <form class="login" id="login" hidden>
+    <h1 style="text-align:center">관리자 로그인</h1>
+    <div class="card" style="display:grid;gap:12px">
+      <label class="field" for="apw">관리자 비밀번호<input type="password" id="apw" autocomplete="off"></label>
+      <div class="warnbox" id="lwarn" hidden></div>
+      <button class="btn big" type="submit" id="lbtn">들어가기</button>
+    </div>
+  </form>
+
+  <section id="main" hidden>
+    <div class="bar3">
+      <h1 style="margin:0">관리자</h1>
+      <label for="cls" class="note">반</label><select id="cls"></select>
+      <input id="addCls" inputmode="numeric" maxlength="3" placeholder="반 추가 (예: 204)" aria-label="반 추가: 학년 1자리와 반 2자리" style="font:inherit;width:150px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--text)">
+      <button class="btn ghost sm" type="button" id="addBtn">추가</button>
+      <span class="note" id="info"></span>
+      <span class="sp"><button class="btn ghost sm" type="button" id="reload">새로 고침</button><button class="btn ghost sm" type="button" id="logout">나가기</button></span>
+    </div>
+    <p class="msg" id="msg"></p>
+
+    <h2>과제 배포</h2>
+    <div class="grid" id="asgs" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))"></div>
+    <p class="legend">배포하면 이 반 학생의 「코드 연습」에 그 과제가 나타납니다. 가장 나중에 배포한 과제가 「이번 과제」로 보이고, 먼저 배포한 과제는 「지난 과제」로 남습니다.</p>
+
+    <h2>학생 현황 <span class="note" id="asgPick"></span></h2>
+    <div class="card" style="padding:10px">
+      <div class="tablewrap" id="tbl"></div>
+      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
+    </div>
+
+    <div class="card detail" id="detail" hidden style="margin-top:14px"></div>
+  </section>
+</main>
+<script src="../assets/config.js"></script>
+<script src="../assets/data.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  if (!WC.online) { $("off").hidden = false; return; }
+  var token = null, D = null, showPw = false, viewAsg = null;
+  try { token = sessionStorage.getItem("wc_admin"); } catch (e) {}
+
+  function say(text, bad) { var m = $("msg"); m.textContent = text || ""; m.style.color = bad ? "var(--ng)" : "var(--ok)"; }
+  function call(action, data) {
+    data = data || {}; data.token = token;
+    return WC.api(action, data).then(function (res) {
+      if (!res.ok && res.auth) { token = null; try { sessionStorage.removeItem("wc_admin"); } catch (e) {} screen(); }
+      return res;
+    });
+  }
+  function screen() { $("login").hidden = !!token; $("main").hidden = !token; if (!token) $("apw").focus(); }
+
+  $("login").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var w = $("lwarn"), b = $("lbtn"); w.hidden = true; b.disabled = true;
+    WC.api("adminLogin", { pw: $("apw").value }).then(function (res) {
+      b.disabled = false;
+      if (!res.ok) { w.textContent = res.msg; w.hidden = false; return; }
+      token = res.token; try { sessionStorage.setItem("wc_admin", token); } catch (e) {}
+      $("apw").value = ""; screen(); load();
+    }).catch(function () { b.disabled = false; w.textContent = "서버에 연결하지 못했습니다."; w.hidden = false; });
+  });
+  $("logout").addEventListener("click", function () { token = null; try { sessionStorage.removeItem("wc_admin"); } catch (e) {} screen(); });
+  $("reload").addEventListener("click", function () { load($("cls").value); });
+  $("addBtn").addEventListener("click", function () {
+    var v = $("addCls").value.trim();
+    if (!/^[1-3][0-9]{2}$/.test(v)) { say("학년 1자리 + 반 2자리로 쓰세요. 2학년 4반은 204입니다.", true); return; }
+    $("addCls").value = ""; viewAsg = null; load(v);
+  });
+  $("cls").addEventListener("change", function () { viewAsg = null; load(this.value); });
+
+  function load(cls) {
+    say("불러오는 중…");
+    return call("adminData", { cls: cls || "" }).then(function (res) {
+      if (!res.ok) { say(res.msg, true); return; }
+      D = res; say("");
+      if (D.cls && D.classes.indexOf(D.cls) < 0) { D.classes.push(D.cls); D.classes.sort(); }
+      var sel = $("cls"); sel.innerHTML = "";
+      if (!D.classes.length) { var o0 = el("option", null, "가입한 학생 없음"); o0.value = ""; sel.appendChild(o0); }
+      D.classes.forEach(function (c) { var o = el("option", null, WC.clsName(c) + "반"); o.value = c; if (c === D.cls) o.selected = true; sel.appendChild(o); });
+      $("detail").hidden = true;
+      draw();
+    }).catch(function () { say("서버에 연결하지 못했습니다. [새로 고침]을 눌러 보세요.", true); });
+  }
+
+  function draw() {
+    var today = WC.today(), active = {};
+    D.log.forEach(function (x) { if (WC.today(x.ts) === today) active[x.sid] = 1; });
+    $("info").textContent = "학생 " + D.students.length + "명 · 오늘 접속 " + Object.keys(active).length + "명";
+    /* 과제 카드 */
+    var box = $("asgs"); box.innerHTML = "";
+    var cur = D.assign[D.assign.length - 1];
+    if (!viewAsg || !WC_ASSIGNMENTS.some(function (a) { return a.id === viewAsg; })) viewAsg = cur || WC_ASSIGNMENTS[0].id;
+    WC_ASSIGNMENTS.forEach(function (A) {
+      var on = D.assign.indexOf(A.id) >= 0, card = el("div", "card asg" + (on ? " on" : ""));
+      card.appendChild(el("h3", null, A.name + " — " + A.title));
+      card.appendChild(el("p", null, A.files.map(function (f) { return f.name; }).join(" · ")));
+      var act = el("div", "act");
+      act.appendChild(el("span", "badge " + (on ? "ok" : "todo"), on ? (A.id === cur ? "배포됨 · 이번 과제" : "배포됨 · 지난 과제") : "배포 안 함"));
+      var b = el("button", "btn sm" + (on ? " ghost" : ""), on ? "거두기" : "이 반에 배포"); b.type = "button";
+      b.addEventListener("click", function () {
+        if (!D.cls) { say("먼저 학생이 가입해야 반이 생깁니다.", true); return; }
+        b.disabled = true; say("저장하는 중…");
+        call("adminAssign", { cls: D.cls, aid: A.id, on: !on }).then(function (res) {
+          if (!res.ok) { say(res.msg, true); b.disabled = false; return; }
+          D.assign = res.assign; if (!on) viewAsg = A.id;
+          say(WC.clsName(D.cls) + "반 · 「" + A.name + "」 " + (on ? "거두었습니다." : "배포했습니다."));
+          draw();
+        }).catch(function () { say("저장하지 못했습니다. 다시 눌러 보세요.", true); b.disabled = false; });
+      });
+      act.appendChild(b);
+      if (A.id !== viewAsg) { var v = el("button", "btn ghost sm", "현황 보기"); v.type = "button"; v.addEventListener("click", function () { viewAsg = A.id; draw(); }); act.appendChild(v); }
+      card.appendChild(act); box.appendChild(card);
+    });
+    drawTable();
+  }
+
+  function drawTable() {
+    var A = WC_ASSIGNMENTS.filter(function (a) { return a.id === viewAsg; })[0], today = WC.today();
+    $("asgPick").textContent = "· " + A.name + " 기준";
+    var by = {}; D.log.forEach(function (x) { (by[x.sid] || (by[x.sid] = [])).push(x); });
+    var box = $("tbl"); box.innerHTML = "";
+    if (!D.students.length) { box.appendChild(el("p", "note", "이 반에 가입한 학생이 아직 없습니다.")); return; }
+    var t = el("table", "tbl"), hr = el("tr");
+    function th(text, cls) { var h = el("th", cls, text); hr.appendChild(h); return h; }
+    th("학번"); th("이름");
+    var pwh = th("비번 "), tg = el("button", "btn ghost sm", showPw ? "가리기" : "보기"); tg.type = "button"; tg.style.padding = "0 8px"; tg.style.fontSize = "12px";
+    tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
+    th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
+    A.files.forEach(function (f) { th(f.name, "c"); });
+    th("진행", "c"); th("형성평가", "c");
+    t.appendChild(hr);
+    D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
+      var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
+      log.forEach(function (x) { if (x.group !== "접속" && WC.today(x.ts) === today) todayN++; });
+      Object.keys(rec).forEach(function (id) { if (id.indexOf("typing:") === 0) speed = Math.max(speed, rec[id].best); if (id.indexOf("quiz:") === 0) quiz++; });
+      tr.appendChild(el("td", null, s.sid)); tr.appendChild(el("td", null, s.name));
+      tr.appendChild(el("td", "pw", showPw ? s.pw : "••••"));
+      tr.appendChild(el("td", null, s.lastLogin));
+      tr.appendChild(el("td", "c", todayN ? todayN + "번" : "-"));
+      tr.appendChild(el("td", "c", speed ? speed + "타" : "-"));
+      A.files.forEach(function (f) {
+        var td = el("td", "c"), r1 = rec["code:" + A.id + ":" + f.id + ":1"], r2 = rec["code:" + A.id + ":" + f.id + ":2"];
+        td.appendChild(el("span", "m" + (r1 ? " ok" : ""), "보")); td.appendChild(document.createTextNode(" "));
+        td.appendChild(el("span", "m" + (r2 ? (r2.pass ? " ok" : " mid") : ""), "외"));
+        if (r1) done++; if (r2 && r2.pass) done++;
+        tr.appendChild(td);
+      });
+      tr.appendChild(el("td", "c", done + " / " + A.files.length * 2));
+      tr.appendChild(el("td", "c", quiz ? quiz + "개" : "-"));
+      tr.addEventListener("click", function () { detail(s, log); });
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
+  }
+
+  function detail(s, log) {
+    var box = $("detail"); box.hidden = false; box.innerHTML = "";
+    box.appendChild(el("h3", null, s.sid + " " + s.name));
+    box.appendChild(el("p", "sub", "가입 " + s.created + " · 마지막 로그인 " + s.lastLogin + " · 비번 " + s.pw));
+    var sorted = log.slice().sort(function (a, b) { return b.ts - a.ts; });
+    if (!sorted.length) box.appendChild(el("p", "note", "기록이 없습니다."));
+    else {
+      var wrap = el("div", "tablewrap"), t = el("table", "tbl"), hr = el("tr");
+      ["때", "구분", "활동", "점수", "결과", "자세히"].forEach(function (h) { hr.appendChild(el("th", null, h)); }); t.appendChild(hr);
+      var day = null;
+      sorted.forEach(function (x) {
+        var d = WC.today(x.ts);
+        if (d !== day) { day = d; var n = sorted.filter(function (y) { return WC.today(y.ts) === d && y.group !== "접속"; }).length; var gr = el("tr"), g = el("th", null, d + " · 활동 " + n + "번"); g.colSpan = 6; g.style.background = "var(--bg)"; gr.appendChild(g); t.appendChild(gr); }
+        var tr = el("tr");
+        tr.appendChild(el("td", null, WC.stamp(x.ts).slice(11))); tr.appendChild(el("td", null, x.group)); tr.appendChild(el("td", null, x.title));
+        tr.appendChild(el("td", null, x.group === "접속" ? "" : x.score + x.unit));
+        tr.appendChild(el("td", null, x.group === "접속" ? "" : (x.pass ? "달성" : "연습 중")));
+        tr.appendChild(el("td", null, x.detail));
+        t.appendChild(tr);
+      });
+      wrap.appendChild(t); box.appendChild(wrap);
+    }
+    var row = el("div", "row"); row.style.marginTop = "12px"; row.style.justifyContent = "flex-start";
+    var del = el("button", "btn ghost sm", "이 학생 가입 지우기 (학번을 잘못 넣었을 때)"); del.type = "button";
+    var armed = false;
+    del.addEventListener("click", function () {
+      if (!armed) { armed = true; del.textContent = "정말 지우려면 한 번 더 누르세요 — " + s.sid + " " + s.name; return; }
+      del.disabled = true;
+      call("adminDelete", { sid: s.sid }).then(function (res) { if (res.ok) { say(s.sid + " " + s.name + " 가입을 지웠습니다. 활동 기록은 시트에 남아 있습니다."); load(D.cls); } });
+    });
+    row.appendChild(del); box.appendChild(row);
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  screen();
+  if (token) load();
+})();
+</script>
+</body>
+</html>

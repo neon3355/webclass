@@ -5,34 +5,85 @@
 (function () {
   var script = document.currentScript;
   var ROOT = script.src.replace(/assets\/common\.js.*$/, "");
-  var CFG = window.WC_CONFIG || { siteName: "화면구현 연습실", submitUrl: "" };
+  var CFG = window.WC_CONFIG || { siteName: "화면구현 연습실", apiUrl: "" };
   var store = {
     get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
   };
   var mem = {};   // localStorage를 쓸 수 없을 때 대신 쓰는 임시 저장
 
+  function lsGet(k) { return store.get(k) || mem[k] || null; }
+  function lsSet(k, v) { mem[k] = v; store.set(k, v); }
+
   var WC = window.WC = {
-    root: ROOT, config: CFG,
-    user: function () { return store.get("wc_user") || mem.user || null; },
-    setUser: function (sid, name) { var u = { sid: sid, name: name }; mem.user = u; store.set("wc_user", u); return u; },
-    clearUser: function () { mem.user = null; try { localStorage.removeItem("wc_user"); } catch (e) {} },
-    today: function (d) { d = d || new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); },
+    root: ROOT, config: CFG, online: !!CFG.apiUrl,
+    user: function () { return lsGet("wc_user"); },
+    setUser: function (u) { lsSet("wc_user", u); return u; },   // u = {sid, name, token, assign}
+    clearUser: function () { mem.wc_user = null; try { localStorage.removeItem("wc_user"); } catch (e) {} },
+    /* 학번 20401 → 반 코드 "204", 표시 "2-4" */
+    clsOf: function (sid) { return String(sid).slice(0, 3); },
+    clsName: function (cls) { cls = String(cls); return cls.charAt(0) + "-" + parseInt(cls.slice(1), 10); },
+    today: function (d) { d = d ? new Date(d) : new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); },
     stamp: function (d) { d = new Date(d); return WC.today(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); },
     mmss: function (ms) { var s = Math.floor(ms / 1000); return pad(Math.floor(s / 60)) + ":" + pad(s % 60); },
 
-    /* 기록: id별로 최고 점수·최근 점수·횟수를 보관 */
-    records: function () { var u = WC.user(); if (!u) return {}; return store.get("wc_rec:" + u.sid) || mem["rec:" + u.sid] || {}; },
+    /* 서버(구글 시트) 호출 */
+    api: function (action, data) {
+      data = data || {}; data.a = action;
+      return fetch(CFG.apiUrl, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(data) })
+        .then(function (r) { return r.json(); });
+    },
+
+    /* 활동 기록: 한 번 끝낼 때마다 한 줄씩 쌓고, 거기서 최고·최근·횟수를 계산 */
+    log: function () { var u = WC.user(); return u ? (lsGet("wc_log:" + u.sid) || []) : []; },
+    summarize: function (log) {
+      var all = {};
+      log.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (x) {
+        if (x.group === "접속") return;
+        var o = all[x.id];
+        if (!o) o = all[x.id] = { best: -1, count: 0, pass: false };
+        o.group = x.group; o.title = x.title; o.unit = x.unit || "점"; o.last = x.score; o.lastDetail = x.detail || ""; o.lastTs = x.ts; o.count++;
+        if (x.score > o.best) { o.best = x.score; o.bestDetail = x.detail || ""; o.bestTs = x.ts; }
+        if (x.pass) o.pass = true;
+      });
+      return all;
+    },
+    records: function () { return WC.summarize(WC.log()); },
     addRecord: function (id, r) {     // r = {group, title, score, unit, detail, pass}
       var u = WC.user(); if (!u) return;
-      var all = WC.records(), old = all[id], now = Date.now();
-      var rec = { group: r.group, title: r.title, unit: r.unit || "점", last: r.score, lastDetail: r.detail || "", lastTs: now,
-        best: old && old.best > r.score ? old.best : r.score,
-        bestDetail: old && old.best > r.score ? old.bestDetail : (r.detail || ""),
-        bestTs: old && old.best > r.score ? old.bestTs : now,
-        pass: !!(r.pass || (old && old.pass)), count: (old ? old.count : 0) + 1 };
-      all[id] = rec; mem["rec:" + u.sid] = all; store.set("wc_rec:" + u.sid, all);
-      return rec;
+      var x = { ts: Date.now(), id: id, group: r.group, title: r.title, score: r.score, unit: r.unit || "점", pass: !!r.pass, detail: r.detail || "" };
+      var log = WC.log(); log.push(x); lsSet("wc_log:" + u.sid, log);
+      if (WC.online) { var q = lsGet("wc_q:" + u.sid) || []; q.push(x); lsSet("wc_q:" + u.sid, q); WC.flush(); }
+    },
+    /* 아직 서버에 못 보낸 기록 보내기 */
+    flush: function () {
+      var u = WC.user(); if (!u || !WC.online) return Promise.resolve();
+      var q = lsGet("wc_q:" + u.sid) || []; if (!q.length) return Promise.resolve();
+      return WC.api("log", { sid: u.sid, token: u.token, items: q }).then(function (res) {
+        if (!res.ok) { if (res.auth) WC.toast("로그인이 풀렸습니다. 다시 로그인하세요."); return; }
+        var sent = {}; q.forEach(function (x) { sent[x.ts + "|" + x.id] = 1; });
+        lsSet("wc_q:" + u.sid, (lsGet("wc_q:" + u.sid) || []).filter(function (x) { return !sent[x.ts + "|" + x.id]; }));
+        if (res.assign) { u.assign = res.assign; WC.setUser(u); }
+      }).catch(function () {});
+    },
+    /* 서버 기록과 배포된 과제를 내려받기 */
+    sync: function () {
+      var u = WC.user(); if (!u || !WC.online) return Promise.resolve(false);
+      return WC.flush().then(function () { return WC.api("me", { sid: u.sid, token: u.token }); }).then(function (res) {
+        if (!res.ok) return false;
+        var q = lsGet("wc_q:" + u.sid) || [], have = {};
+        res.log.forEach(function (x) { have[x.ts + "|" + x.id] = 1; });
+        lsSet("wc_log:" + u.sid, res.log.concat(q.filter(function (x) { return !have[x.ts + "|" + x.id]; })));
+        u.assign = res.assign; WC.setUser(u);
+        return true;
+      }).catch(function () { return false; });
+    },
+    /* 이 학생에게 보이는 과제 목록 (서버가 없으면 전부) */
+    assignments: function () {
+      var all = window.WC_ASSIGNMENTS || [], u = WC.user();
+      if (!WC.online) return all;
+      var on = (u && u.assign) || [];
+      return on.map(function (id) { return all.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean);
     },
     /* 붙여넣기·끌어다 놓기 차단 */
     blockPaste: function () {
@@ -82,7 +133,7 @@
     var right = document.createElement("div"); right.className = "wc-user";
     if (u) {
       var chip = document.createElement("span"); chip.className = "wc-chip"; chip.id = "wcUserChip"; chip.textContent = u.sid + " " + u.name;
-      var out = document.createElement("button"); out.type = "button"; out.textContent = "바꾸기";
+      var out = document.createElement("button"); out.type = "button"; out.textContent = WC.online ? "로그아웃" : "바꾸기";
       out.addEventListener("click", function () { WC.clearUser(); location.href = ROOT + "index.html"; });
       right.appendChild(chip); right.appendChild(out);
     }
@@ -122,7 +173,7 @@
   function init() {
     var isHome = document.body.hasAttribute("data-wc-home");
     if (!WC.user() && !isHome) { location.replace(ROOT + "index.html"); return; }
-    bar(); legacy();
+    bar(); legacy(); WC.flush();
     document.dispatchEvent(new Event("wc-ready"));
   }
   if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
