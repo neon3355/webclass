@@ -4,5 +4,5 @@ window.WC_CONFIG = {
   /* 서버 주소 (구글 Apps Script 웹 앱 URL, https://script.google.com/macros/s/…/exec).
      넣으면 회원가입·로그인·관리자 화면이 켜집니다. 설정 방법은 README.md 의 「서버 설정」.
      비워 두면 학번·이름만 넣고 쓰는 방식으로 동작합니다. */
-  apiUrl: ""
+  apiUrl: "https://script.google.com/macros/s/AKfycbzjJVJBm4gOhm1dZv4uttLIBNswFzU5PsqRzcnfiUIaw3JA_Q2SHjMN_juaqQsweysixQ/exec"
 };
