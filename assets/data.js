@@ -126,7 +126,7 @@ var WC_CAFE = (function () {
   var IH = { t: "<jsp:include page=\"header.jsp\" />", h: "header.jsp를 불러오기", tip: "<jsp:include page=\"header.jsp\"></jsp:include> 로 써도 정답입니다. (Ctrl+Space로 자동 완성되는 모양)" };
   var IF = { t: "<jsp:include page=\"footer.jsp\" />", h: "footer.jsp를 불러오기", tip: "<jsp:include page=\"footer.jsp\"></jsp:include> 로 써도 정답입니다." };
   var S1 = { t: "<section>", h: "본문 영역 시작" }, S2 = { t: "</section>", h: "본문 영역 끝" };
-  function inRow(label, name) { return { t: "<tr><td class=\"td-center\">" + label + "</td><td><input type=\"text\" name=\"" + name + "\"></td></tr>", h: "한 행: td-center 클래스 칸 「" + label + "」 + 칸 안에 text 입력칸 (name은 " + name + ")", in: 3 }; }
+  function inRow(label, name) { return { t: "<tr><td class=\"td-center\">" + label + "</td><td><input type=\"text\" name=\"" + name + "\"></td></tr>", h: "한 행: td-center 클래스 칸 「" + label + "」 + 칸 안에 text 입력칸 (name은 " + name + ")", in: 2 }; }
   function dataRow(cells) { return { t: "<tr>" + cells.map(function (c) { return "<td>" + c + "</td>"; }).join("") + "</tr>", h: "데이터 한 행 (칸 " + cells.length + "개): " + cells.join(" · "), in: 2 }; }
   function heads(cells) { return cells.map(function (c) { return "<th>" + c + "</th>"; }).join(""); }
   var menuHead = ["메뉴번호", "메뉴명", "분류", "가격", "원산지", "판매상태"], orderHead = ["주문번호", "메뉴명", "수량", "주문시간", "상태"];
@@ -152,17 +152,17 @@ var WC_CAFE = (function () {
       { t: "<li>메뉴 목록 조회</li>", h: "목록 항목 「메뉴 목록 조회」", in: 2 },
       { t: "<li>주문 현황 조회</li>", h: "목록 항목 「주문 현황 조회」", in: 2 },
       { t: "</ul>", h: "목록 끝", in: 1 }, S2, IF]),
-    wcPage("menu", "menu.jsp", "메뉴 등록 화면 (form + table + input)", [IH, S1,
+    /* 이 과제는 form 을 배우기 전에 한 실습이라 수업 코드대로 form 없이 table 만 씁니다 */
+    wcPage("menu", "menu.jsp", "메뉴 등록 화면 (table + input)", [IH, S1,
       { t: "<h2>카페 메뉴 등록</h2>", h: "h2 제목 「카페 메뉴 등록」", in: 1 },
-      { t: "<form>", h: "입력 양식 시작", in: 1 },
-      { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 2 },
+      { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 1 },
       inRow("메뉴번호", "menuno"), inRow("메뉴명", "menuname"), inRow("분류", "category"), inRow("가격", "price"), inRow("원산지", "origin"), inRow("판매상태", "status"),
-      { t: "<tr>", h: "버튼 행 시작", in: 3 },
-      { t: "<td colspan=\"2\" class=\"td-center\">", h: "가로 2칸을 합치고 td-center 클래스를 적용한 칸 시작", in: 4 },
-      { t: "<input type=\"submit\" value=\"등록\">", h: "「등록」 전송 버튼", in: 5 },
-      { t: "<input type=\"reset\" value=\"다시쓰기\">", h: "「다시쓰기」 초기화 버튼", in: 5 },
-      { t: "</td>", h: "칸 끝", in: 4 }, { t: "</tr>", h: "행 끝", in: 3 },
-      { t: "</table>", h: "표 끝", in: 2 }, { t: "</form>", h: "입력 양식 끝", in: 1 }, S2, IF]),
+      { t: "<tr>", h: "버튼 행 시작", in: 2 },
+      { t: "<td colspan=\"2\" class=\"td-center\">", h: "가로 2칸을 합치고 td-center 클래스를 적용한 칸 시작", in: 3 },
+      { t: "<input type=\"submit\" value=\"등록\">", h: "「등록」 전송 버튼", in: 4 },
+      { t: "<input type=\"reset\" value=\"다시쓰기\">", h: "「다시쓰기」 초기화 버튼", in: 4 },
+      { t: "</td>", h: "칸 끝", in: 3 }, { t: "</tr>", h: "행 끝", in: 2 },
+      { t: "</table>", h: "표 끝", in: 1 }, S2, IF]),
     wcPage("menulist", "menulist.jsp", "메뉴 목록 화면 (제목 행 + 데이터 5행)", [IH, S1,
       { t: "<h2>메뉴목록조회</h2>", h: "h2 제목 「메뉴목록조회」", in: 1 },
       { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 1 },
