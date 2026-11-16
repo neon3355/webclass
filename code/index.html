@@ -99,7 +99,7 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   var MODES = { 1: { name: "보고 쓰기", desc: "파란 줄에 보이는 코드를 그대로 쓰고 Enter를 누르세요." },
                 2: { name: "외워 쓰기", desc: "코드는 가려져 있습니다. 파란 줄의 설명을 보고 코드를 쓰세요. 정말 모르겠으면 [보기]를 누르세요. (본 줄은 기록됩니다)" },
-                3: { name: "백지 쓰기", desc: "설명도 코드도 없습니다. 시험처럼 처음부터 끝까지 기억해서 쓰세요. 막히면 [힌트] → [보기] 순서로 도움을 받을 수 있습니다. (도움 받은 줄은 기록됩니다)" } };
+                3: { name: "백지 쓰기", desc: "설명도 코드도 없습니다. 시험처럼 처음부터 끝까지 기억해서 쓰세요. style.css는 묶음 순서와 묶음 안의 줄 순서가 달라도 됩니다. 막히면 [힌트] → [보기] 순서로 도움을 받을 수 있습니다. (도움 받은 줄은 기록됩니다)" } };
   var BASE = { 1: 2, 2: 1, 3: 0 };   // 처음에 보여 주는 정도: 2 = 코드, 1 = 설명, 0 = 아무것도 없음
   function fill(s) { return s.replace(/\{sid\}/g, u.sid).replace(/\{name\}/g, u.name); }
   /* 비교: 들여쓰기·띄어쓰기 개수 무시, 기호 주변 공백 무시, ⓒ는 (c)·©도 인정 */
@@ -187,12 +187,34 @@
     $("menu").hidden = true; $("done").hidden = true; $("play").hidden = false;
     $("fname").textContent = f.name; $("mname").textContent = MODES[m].name; $("mdesc").textContent = MODES[m].desc;
     $("pn").textContent = S.total; $("peekBtn").hidden = m === 1;
+    /* style.css 는 순서가 달라도 결과가 같으므로(외워·백지 쓰기) 묶음 안에서는 아무 순서로 써도 인정한다.
+       role: open = "header {", decl = 속성 줄, close = "}", single = 한 줄짜리 묶음 */
+    S.free = f.id === "style" && m > 1; S.open = -1;
+    if (S.free) {
+      var blk = -1, inside = false;
+      lines.forEach(function (l) {
+        if (!l.t) return;
+        var n = norm(l.t);
+        if (!inside && /\{.*\}$/.test(n)) { blk++; l.blk = blk; l.role = "single"; }
+        else if (!inside && /\{$/.test(n)) { blk++; l.blk = blk; l.role = "open"; inside = true; }
+        else if (n === "}") { l.blk = blk; l.role = "close"; inside = false; }
+        else { l.blk = blk; l.role = "decl"; }
+      });
+    }
     advance();
     clearInterval(timer); timer = setInterval(function () { if (S) $("tm").textContent = WC.mmss(S.start ? Date.now() - S.start : 0); }, 500);
   }
+  /* 지금 써도 되는 줄들 */
+  function eligible() {
+    var todo = S.lines.filter(function (l) { return l.t && l.st !== "done" && l.st !== "help"; });
+    if (!S.free) return todo.slice(0, 1);
+    if (S.open < 0) return todo.filter(function (l) { return l.role === "open" || l.role === "single"; });
+    var decl = todo.filter(function (l) { return l.blk === S.open && l.role === "decl"; });
+    return decl.length ? decl : todo.filter(function (l) { return l.blk === S.open && l.role === "close"; });
+  }
   function advance() {
-    var i = S.cur + 1;
-    while (i < S.lines.length && !S.lines[i].t) i++;
+    S.lines.forEach(function (l) { if (l.st === "cur") l.st = "todo"; });
+    var el0 = eligible()[0], i = el0 ? S.lines.indexOf(el0) : S.lines.length;
     S.cur = i; S.tries = 0; S.peeked = false; S.lv = BASE[S.m];
     $("peekBtn").textContent = S.lv === 0 ? "힌트" : "보기"; $("peekBtn").disabled = false;
     if (i >= S.lines.length) return finish();
@@ -233,14 +255,25 @@
     var inp = $("codein"), v = inp.value, l = S.lines[S.cur];
     if (!v.trim()) { msg("ng", ["코드를 입력하고 Enter를 누르세요."]); return; }
     if (!S.start) S.start = Date.now();
-    var a = norm(v), b = norm(l.t);
-    if (a === b) {
+    var a = norm(v), b = norm(l.t), can = eligible();
+    var hit = can.filter(function (c) { return norm(c.t) === a; })[0];
+    if (hit) {
+      var same = hit === l;
       if (S.tries === 0 && !S.peeked) S.firstOk++;
-      if (S.peeked) { S.helped++; l.st = "help"; } else l.st = "done";
+      if (S.peeked && same) { S.helped++; hit.st = "help"; } else hit.st = "done";
+      if (S.free) { if (hit.role === "open") S.open = hit.blk; else if (hit.role === "close") S.open = -1; }
       S.doneN++;
       msg("ok", ["✓ 맞았습니다."]);
       advance();
       return;
+    }
+    if (S.free) {
+      var left = S.lines.filter(function (c) { return c.t && c.blk === S.open && c.role === "decl" && c.st !== "done" && c.st !== "help"; }).length;
+      if (a === "}" && S.open >= 0 && left) { S.tries++; S.errs++; inp.classList.add("err"); msg("ng", ["✗ 아직 이 묶음 안에 써야 할 줄이 " + left + "개 남았습니다."]); inp.focus(); return; }
+      if (S.lines.some(function (c) { return c.t && (c.st === "done" || c.st === "help") && (S.open < 0 ? c.role === "open" || c.role === "single" : c.blk === S.open) && norm(c.t) === a; })) { msg("ng", ["이미 쓴 줄입니다. 다른 줄을 쓰세요."]); inp.focus(); return; }
+      /* 가장 비슷한 줄을 기준으로 어디까지 맞았는지 알려 준다 */
+      var bestK = -1;
+      can.forEach(function (c) { var t = norm(c.t), k2 = 0; while (k2 < a.length && k2 < t.length && a.charAt(k2) === t.charAt(k2)) k2++; if (k2 > bestK) { bestK = k2; b = t; } });
     }
     S.tries++; S.errs++;
     inp.classList.add("err");
