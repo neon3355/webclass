@@ -195,7 +195,18 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       cb.addEventListener("change", function () { if (cb.checked) picked[s.sid] = 1; else delete picked[s.sid]; pickInfo(); });
       ctd.appendChild(cb); tr.appendChild(ctd);
       tr.appendChild(el("td", null, s.sid)); tr.appendChild(el("td", null, s.name));
-      tr.appendChild(el("td", "pw", showPw ? s.pw : "••••"));
+      var pwTd = el("td", "pw", (showPw ? s.pw : "••••") + " "), rs = el("button", "btn ghost sm", "초기화"), rsArmed = false;
+      rs.type = "button"; rs.style.padding = "0 8px"; rs.style.fontSize = "12px"; rs.style.fontFamily = "inherit";
+      pwTd.addEventListener("click", function (e) { e.stopPropagation(); });
+      rs.addEventListener("click", function () {
+        if (!rsArmed) { rsArmed = true; rs.textContent = "1234로 바꾸기"; return; }
+        rs.disabled = true;
+        call("adminResetPw", { sid: s.sid }).then(function (res) {
+          if (!res.ok) { say(res.msg === "알 수 없는 요청" ? "비번 초기화는 구글 Apps Script의 서버 코드를 새 버전으로 바꿔 다시 배포해야 쓸 수 있습니다." : res.msg, true); rs.disabled = false; return; }
+          s.pw = res.pw; say(s.sid + " " + s.name + " 비번을 1234로 바꿨습니다."); drawTable();
+        }).catch(function () { say("저장하지 못했습니다. 다시 눌러 보세요.", true); rs.disabled = false; });
+      });
+      pwTd.appendChild(rs); tr.appendChild(pwTd);
       tr.appendChild(el("td", null, s.lastLogin));
       tr.appendChild(el("td", "c", todayN ? todayN + "번" : "-"));
       tr.appendChild(el("td", "c", speed ? speed + "타" : "-"));

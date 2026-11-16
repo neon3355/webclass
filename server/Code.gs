@@ -58,6 +58,7 @@ function route(d) {
     if (a === "adminData") return adminData(d);
     if (a === "adminAssign") return locked(function () { return adminAssign(d); });
     if (a === "adminDelete") return locked(function () { return adminDelete(d); });
+    if (a === "adminResetPw") return locked(function () { return adminResetPw(d); });
     if (a === "adminSheetAdd") return locked(function () { return adminSheetAdd(d); });
     if (a === "adminSheetSet") return locked(function () { return adminSheetSet(d); });
     return { ok: false, msg: "알 수 없는 요청" };
@@ -82,7 +83,9 @@ function signup(d) {
   if (pw.length < 4) return { ok: false, msg: "비밀번호는 4글자 이상으로 정하세요." };
   if (findStudent(sid)) return { ok: false, msg: "이미 가입된 학번입니다. 로그인하세요. 내 학번이 맞는데 가입한 적이 없다면 선생님께 말하세요." };
   var now = Date.now();
-  sheet("students").appendRow([sid, name, pw, clsOf(sid), when(now), when(now)]);
+  var sh = sheet("students");
+  sh.appendRow([sid, name, pw, clsOf(sid), when(now), when(now)]);
+  setText(sh, sh.getLastRow(), 3, pw);        // 0으로 시작하는 비번(0123 등)이 숫자로 바뀌지 않게 글자로 다시 저장
   writeLog(sid, [{ ts: now, id: "login", group: "접속", title: "회원가입", score: 0, unit: "", pass: false, detail: "" }]);
   return { ok: true, sid: sid, name: name, token: sign("s:" + sid), assign: assignOf(clsOf(sid)) };
 }
@@ -90,11 +93,27 @@ function login(d) {
   var sid = String(d.sid || "").trim(), name = String(d.name || "").trim(), pw = String(d.pw || "");
   var s = findStudent(sid);
   if (!s) return { ok: false, msg: "가입되지 않은 학번입니다. 먼저 회원가입을 하세요." };
-  if (s.name !== name || s.pw !== pw) return { ok: false, msg: "이름 또는 비밀번호가 맞지 않습니다." };
+  if (squeeze(s.name) !== squeeze(name)) return { ok: false, msg: "이름이 가입할 때 쓴 이름과 다릅니다. 띄어쓰기 없이 정확히 입력하세요." };
+  if (!samePw(s.pw, pw)) return { ok: false, msg: "비밀번호가 맞지 않습니다. 대문자(Caps Lock)가 켜져 있는지 확인하세요. 계속 안 되면 선생님께 말하세요." };
   var now = Date.now();
   sheet("students").getRange(s.row, 6).setValue(when(now));
   writeLog(sid, [{ ts: now, id: "login", group: "접속", title: "로그인", score: 0, unit: "", pass: false, detail: "" }]);
   return { ok: true, sid: sid, name: name, token: sign("s:" + sid), assign: assignOf(clsOf(sid)) };
+}
+
+function squeeze(t) { return String(t).replace(/\s+/g, ""); }
+/* 시트가 0123 을 123 으로 바꿔 저장한 경우에도 로그인되게 함 */
+function samePw(saved, typed) {
+  saved = String(saved); typed = String(typed);
+  if (saved === typed) return true;
+  return /^[0-9]+$/.test(saved) && /^[0-9]+$/.test(typed) && saved.replace(/^0+/, "") === typed.replace(/^0+/, "");
+}
+function setText(sh, row, col, value) { var r = sh.getRange(row, col); r.setNumberFormat("@"); r.setValue(String(value)); }
+function adminResetPw(d) {
+  var s = findStudent(String(d.sid));
+  if (!s) return { ok: false, msg: "그 학번의 학생이 없습니다." };
+  setText(sheet("students"), s.row, 3, "1234");
+  return { ok: true, pw: "1234" };
 }
 
 /* ───── 활동 기록 ───── */
