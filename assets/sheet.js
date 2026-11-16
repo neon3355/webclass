@@ -4,7 +4,8 @@ function wcSheetHtml(A, students, dateText) {
   var out = "";
   students.forEach(function (st) {
     function fill(s) { return s.replace(/\{sid\}/g, st.sid).replace(/\{name\}/g, st.name); }
-    out += '<section class="stu">';
+    /* 쪽 여백을 0으로 하고(브라우저가 주소·쪽 번호를 찍지 못하게) 여백은 표의 머리·꼬리 칸으로 쪽마다 넣음 */
+    out += '<table class="stu"><thead><tr><td class="gap"></td></tr></thead><tfoot><tr><td class="gap"></td></tr></tfoot><tbody><tr><td class="pg">';
     out += '<header class="top"><div><p class="k">수기 작성 과제지 · ' + esc(A.name) + '</p><h1>' + esc(A.title) + '</h1></div>' +
       '<table class="who"><tr><th>학번</th><td>' + esc(st.sid) + '</td><th>이름</th><td>' + esc(st.name) + '</td></tr><tr><th>날짜</th><td>' + esc(dateText) + '</td><th>확인</th><td></td></tr></table></header>' +
       '<p class="how">인쇄된 코드를 보고 바로 아래 줄에 <b>똑같이</b> 손으로 옮겨 쓰세요. 기호( &lt; &gt; " = ; : { } )와 띄어쓰기, 대소문자까지 그대로 씁니다. 회색 줄은 Eclipse가 자동으로 만들어 주는 줄이라 쓰지 않습니다.</p>';
@@ -19,12 +20,13 @@ function wcSheetHtml(A, students, dateText) {
       });
       out += '</div></div>';
     });
-    out += '</section>';
+    out += '</td></tr></tbody></table>';
   });
   return '<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>수기 작성 과제지</title><style>' +
-    '@page { size: A4; margin: 12mm 12mm 12mm; }' +
+    '@page { size: A4; margin: 0; }' +
     '* { box-sizing: border-box; } body { margin: 0; font-family: "Malgun Gothic", "Noto Sans KR", "Noto Sans CJK KR", sans-serif; font-size: 10pt; color: #000; }' +
-    '.stu { break-after: page; } .stu:last-child { break-after: auto; }' +
+    '.stu { break-after: page; width: 100%; border-collapse: collapse; table-layout: fixed; } .stu:last-child { break-after: auto; }' +
+    '.stu td.gap { height: 12mm; padding: 0; } .stu td.pg { padding: 0 12mm; vertical-align: top; }' +
     '.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 10mm; border-bottom: 2px solid #000; padding-bottom: 2mm; }' +
     '.top .k { margin: 0; font-size: 9pt; } .top h1 { margin: 0; font-size: 15pt; }' +
     '.who { border-collapse: collapse; font-size: 9.5pt; } .who th, .who td { border: 1px solid #000; padding: 1mm 2.5mm; } .who th { background: #eee; font-weight: 700; } .who td { min-width: 24mm; height: 7mm; }' +
