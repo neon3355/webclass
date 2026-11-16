@@ -75,8 +75,8 @@ function wcProgram(p) {
   var A = [{ auto: "<%@ page language=\"java\" contentType=\"text/html; charset=UTF-8\"" }, { auto: "    pageEncoding=\"UTF-8\"%>" }, { auto: "<!DOCTYPE html>" }, { auto: "<html>" }, { auto: "<head>" }];
   var B = [{ auto: "<meta charset=\"UTF-8\">" }, { auto: "<title>Insert title here</title>" }, { auto: "</head>" }, { auto: "<body>" }];
   var Z = [{ auto: "</body>" }, { auto: "</html>" }];
-  var INC_H = { t: "<jsp:include page=\"header.jsp\"></jsp:include>", h: "header.jsp를 불러오기" };
-  var INC_F = { t: "<jsp:include page=\"footer.jsp\"></jsp:include>", h: "footer.jsp를 불러오기" };
+  var INC_H = { t: "<jsp:include page=\"header.jsp\"></jsp:include>", h: "header.jsp를 불러오기", tip: "<jsp:include page=\"header.jsp\" /> 처럼 줄여 써도 정답입니다." };
+  var INC_F = { t: "<jsp:include page=\"footer.jsp\"></jsp:include>", h: "footer.jsp를 불러오기", tip: "<jsp:include page=\"footer.jsp\" /> 처럼 줄여 써도 정답입니다." };
   var form = [INC_H, { t: "<section>", h: "본문 영역 시작" },
     { t: "<h2>" + p.form.title + "</h2>", h: "h2 제목 「" + p.form.title + "」", in: 1 },
     { t: "<form>", h: "입력 양식 시작", in: 1 }, { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 1 }];
@@ -114,11 +114,81 @@ function wcProgram(p) {
   ] };
 }
 
+/* ───── 수업 코드를 그대로 넣는 과제 ─────
+   wcPage(파일id, 파일이름, 설명, 본문 줄들, link 줄 넣기) → Eclipse 자동 생성 줄을 앞뒤에 붙인 JSP 파일 하나 */
+function wcPage(id, name, desc, body, link) {
+  var A = [{ auto: "<%@ page language=\"java\" contentType=\"text/html; charset=UTF-8\"" }, { auto: "    pageEncoding=\"UTF-8\"%>" }, { auto: "<!DOCTYPE html>" }, { auto: "<html>" }, { auto: "<head>" }];
+  var L = link ? [{ t: "<link href=\"style.css\" rel=\"stylesheet\">", h: "style.css 파일을 연결하는 link 태그" }] : [];
+  var B = [{ auto: "<meta charset=\"UTF-8\">" }, { auto: "<title>Insert title here</title>" }, { auto: "</head>" }, { auto: "<body>" }];
+  return { id: id, name: name, desc: desc, lines: A.concat(L, B, body, [{ auto: "</body>" }, { auto: "</html>" }]) };
+}
+var WC_CAFE = (function () {
+  var IH = { t: "<jsp:include page=\"header.jsp\" />", h: "header.jsp를 불러오기", tip: "<jsp:include page=\"header.jsp\"></jsp:include> 로 써도 정답입니다. (Ctrl+Space로 자동 완성되는 모양)" };
+  var IF = { t: "<jsp:include page=\"footer.jsp\" />", h: "footer.jsp를 불러오기", tip: "<jsp:include page=\"footer.jsp\"></jsp:include> 로 써도 정답입니다." };
+  var S1 = { t: "<section>", h: "본문 영역 시작" }, S2 = { t: "</section>", h: "본문 영역 끝" };
+  function inRow(label, name) { return { t: "<tr><td class=\"td-center\">" + label + "</td><td><input type=\"text\" name=\"" + name + "\"></td></tr>", h: "한 행: td-center 클래스 칸 「" + label + "」 + 칸 안에 text 입력칸 (name은 " + name + ")", in: 3 }; }
+  function dataRow(cells) { return { t: "<tr>" + cells.map(function (c) { return "<td>" + c + "</td>"; }).join("") + "</tr>", h: "데이터 한 행 (칸 " + cells.length + "개): " + cells.join(" · "), in: 2 }; }
+  function heads(cells) { return cells.map(function (c) { return "<th>" + c + "</th>"; }).join(""); }
+  var menuHead = ["메뉴번호", "메뉴명", "분류", "가격", "원산지", "판매상태"], orderHead = ["주문번호", "메뉴명", "수량", "주문시간", "상태"];
+  return { id: "a3", name: "과제 3", title: "카페 메뉴 관리 프로그램", files: [
+    { id: "style", name: "style.css", desc: "화면 디자인", lines: WC_STYLE_LINES },
+    wcPage("header", "header.jsp", "프로그램 제목과 메뉴 4개", [
+      { t: "<header>카페 메뉴 관리 프로그램 ({sid} {name})</header>", h: "header 태그 안에 프로그램 제목 「카페 메뉴 관리 프로그램」과 괄호 안에 내 학번 이름" },
+      { t: "<nav>", h: "메뉴 영역 시작" },
+      { t: "<a href=\"menu.jsp\">메뉴등록</a> &nbsp;&nbsp;", h: "「메뉴등록」을 누르면 menu.jsp로 이동 + 뒤에 빈칸 2개(&nbsp;&nbsp;)", in: 1, tip: "&nbsp; 는 화면에 빈칸 한 개를 넣는 코드입니다. 메뉴 사이를 띄우려고 두 번 씁니다." },
+      { t: "<a href=\"menulist.jsp\">메뉴목록조회</a> &nbsp;&nbsp;", h: "「메뉴목록조회」를 누르면 menulist.jsp로 이동 + 빈칸 2개", in: 1 },
+      { t: "<a href=\"order.jsp\">주문현황조회</a> &nbsp;&nbsp;", h: "「주문현황조회」를 누르면 order.jsp로 이동 + 빈칸 2개", in: 1 },
+      { t: "<a href=\"index.jsp\">홈으로</a>", h: "「홈으로」를 누르면 index.jsp로 이동", in: 1 },
+      { t: "</nav>", h: "메뉴 영역 끝" }], true),
+    wcPage("footer", "footer.jsp", "저작권과 내 학번·이름", [
+      { t: "<footer>Copyrightⓒ2026 {sid} {name} All rights reserved.</footer>", h: "footer 태그 안에 저작권 문구: Copyrightⓒ2026 내학번 내이름 All rights reserved.",
+        tip: "ⓒ 입력 방법: 한글 ㅇ(이응)을 치고 키보드의 [한자] 키를 누른 뒤 목록에서 ⓒ를 고릅니다. 어려우면 (c) 로 써도 정답입니다." }]),
+    wcPage("index", "index.jsp", "홈 화면 (프로그램 소개와 기능 목록)", [IH, S1,
+      { t: "<h2>카페 메뉴 관리 프로그램</h2>", h: "h2 제목 「카페 메뉴 관리 프로그램」", in: 1 },
+      { t: "카페 메뉴를 등록하고 메뉴 목록과 주문 현황을 확인할 수 있는 프로그램입니다.<br><br>", h: "소개 글 + 줄바꿈 2번(<br><br>): 카페 메뉴를 등록하고 메뉴 목록과 주문 현황을 확인할 수 있는 프로그램입니다.", in: 1 },
+      { t: "카페에서 필요한 메뉴 정보와 주문 상태를 화면에서 쉽게 확인할 수 있습니다.", h: "소개 글: 카페에서 필요한 메뉴 정보와 주문 상태를 화면에서 쉽게 확인할 수 있습니다.", in: 1 },
+      { t: "<ul>", h: "순서 없는 목록 시작", in: 1 },
+      { t: "<li>메뉴 등록</li>", h: "목록 항목 「메뉴 등록」", in: 2 },
+      { t: "<li>메뉴 목록 조회</li>", h: "목록 항목 「메뉴 목록 조회」", in: 2 },
+      { t: "<li>주문 현황 조회</li>", h: "목록 항목 「주문 현황 조회」", in: 2 },
+      { t: "</ul>", h: "목록 끝", in: 1 }, S2, IF]),
+    wcPage("menu", "menu.jsp", "메뉴 등록 화면 (form + table + input)", [IH, S1,
+      { t: "<h2>카페 메뉴 등록</h2>", h: "h2 제목 「카페 메뉴 등록」", in: 1 },
+      { t: "<form>", h: "입력 양식 시작", in: 1 },
+      { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 2 },
+      inRow("메뉴번호", "menuno"), inRow("메뉴명", "menuname"), inRow("분류", "category"), inRow("가격", "price"), inRow("원산지", "origin"), inRow("판매상태", "status"),
+      { t: "<tr>", h: "버튼 행 시작", in: 3 },
+      { t: "<td colspan=\"2\" class=\"td-center\">", h: "가로 2칸을 합치고 td-center 클래스를 적용한 칸 시작", in: 4 },
+      { t: "<input type=\"submit\" value=\"등록\">", h: "「등록」 전송 버튼", in: 5 },
+      { t: "<input type=\"reset\" value=\"다시쓰기\">", h: "「다시쓰기」 초기화 버튼", in: 5 },
+      { t: "</td>", h: "칸 끝", in: 4 }, { t: "</tr>", h: "행 끝", in: 3 },
+      { t: "</table>", h: "표 끝", in: 2 }, { t: "</form>", h: "입력 양식 끝", in: 1 }, S2, IF]),
+    wcPage("menulist", "menulist.jsp", "메뉴 목록 화면 (제목 행 + 데이터 5행)", [IH, S1,
+      { t: "<h2>메뉴목록조회</h2>", h: "h2 제목 「메뉴목록조회」", in: 1 },
+      { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 1 },
+      { t: "<tr>", h: "제목 행 시작", in: 2 },
+      { t: heads(menuHead), h: "제목 칸(th) 6개: " + menuHead.join(" · "), in: 3 },
+      { t: "</tr>", h: "제목 행 끝", in: 2 },
+      dataRow(["M001", "아메리카노", "커피", "3000", "브라질", "판매중"]), dataRow(["M002", "카페라떼", "커피", "4000", "브라질", "판매중"]),
+      dataRow(["M003", "초코라떼", "논커피", "4500", "국내", "판매중"]), dataRow(["M004", "딸기스무디", "스무디", "5000", "국내", "판매중"]),
+      dataRow(["M005", "치즈케이크", "디저트", "5500", "국내", "품절"]),
+      { t: "</table>", h: "표 끝", in: 1 }, S2, IF]),
+    wcPage("order", "order.jsp", "주문 현황 화면 (제목 행 + 데이터 4행)", [IH, S1,
+      { t: "<h2>주문현황조회</h2>", h: "h2 제목 「주문현황조회」", in: 1 },
+      { t: "<table border=\"1\">", h: "테두리가 1인 표 시작", in: 1 },
+      { t: "<tr>" + heads(orderHead) + "</tr>", h: "제목 행 한 줄 (th 5개): " + orderHead.join(" · "), in: 2 },
+      dataRow(["O001", "아메리카노", "2", "09:10", "완료"]), dataRow(["O002", "카페라떼", "1", "09:25", "제조중"]),
+      dataRow(["O003", "딸기스무디", "2", "10:05", "대기"]), dataRow(["O004", "치즈케이크", "1", "10:20", "완료"]),
+      { t: "</table>", h: "표 끝", in: 1 }, S2, IF])
+  ] };
+})();
+
 window.WC_ASSIGNMENTS = [
   wcProgram({ id: "a1", name: "과제 1", title: "학교 체육시설 예약 관리 프로그램", intro: "학교 체육시설 예약 정보를 관리하는 프로그램입니다.",
     form: { file: "reservation", menu: "예약신청", title: "예약신청", submit: "예약등록", rows: [["시설명", "facility_name"], ["예약자명", "user_name"]] },
     list: { file: "reservationlist", menu: "예약현황" } }),
   wcProgram({ id: "a2", name: "과제 2", title: "도서 대출 관리 프로그램", intro: "학교 도서관의 도서 대출 정보를 관리하는 프로그램입니다.",
     form: { file: "loan", menu: "대출신청", title: "대출신청", submit: "대출등록", rows: [["도서명", "book_name"], ["대출자명", "user_name"]] },
-    list: { file: "loanlist", menu: "대출현황" } })
+    list: { file: "loanlist", menu: "대출현황" } }),
+  WC_CAFE      // 과제 3: 수업에서 작성한 카페 메뉴 관리 프로그램 (수업 코드 그대로)
 ];

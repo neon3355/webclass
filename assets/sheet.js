@@ -8,7 +8,7 @@ function wcSheetHtml(A, students, dateText) {
     function fill(s) { return s.replace(/\{sid\}/g, st.sid).replace(/\{name\}/g, st.name); }
     function row(l, n) {
       if (l.auto) return '<div class="r auto"><code>' + esc(l.auto) + '</code></div>';
-      return '<div class="r"><i>' + n + '</i><div><code style="padding-left:' + (l.in || 0) * 1.2 + 'em">' + esc(fill(l.t)) + '</code><span class="w"></span></div></div>';
+      return '<div class="r"><i>' + n + '</i><div><code style="padding-left:' + (l.in || 0) * 1.2 + 'em">' + esc(fill(l.t)) + '</code><span class="w"></span>' + (l.t.length > 60 ? '<span class="w"></span>' : '') + '</div></div>';   // 긴 줄은 쓰는 칸 두 줄
     }
     out += '<div class="src" data-foot="' + esc(st.sid + " " + st.name + " · " + A.name) + '">';
     out += '<header class="top"><div><p class="k">수기 작성 과제지 · ' + esc(A.name) + '</p><h1>' + esc(A.title) + '</h1></div>' +
