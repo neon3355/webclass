@@ -61,6 +61,10 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     <p class="legend">배포하면 이 반 학생의 「코드 연습」에 그 과제가 나타납니다. 가장 나중에 배포한 과제가 「이번 과제」로 보이고, 먼저 배포한 과제는 「지난 과제」로 남습니다.</p>
 
     <h2>학생 현황 <span class="note" id="asgPick"></span></h2>
+    <div class="row" style="justify-content:flex-start;align-items:center;margin-bottom:8px">
+      <button class="btn sm" type="button" id="printBtn">선택한 학생 수기 과제지 출력하기</button>
+      <span class="note" id="pickInfo">표 왼쪽 칸에서 학생을 체크하세요.</span>
+    </div>
     <div class="card" style="padding:10px">
       <div class="tablewrap" id="tbl"></div>
       <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
@@ -71,13 +75,14 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
 </main>
 <script src="../assets/config.js"></script>
 <script src="../assets/data.js"></script>
+<script src="../assets/sheet.js"></script>
 <script src="../assets/common.js"></script>
 <script>
 (function () {
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   if (!WC.online) { $("off").hidden = false; return; }
-  var token = null, D = null, showPw = false, viewAsg = null;
+  var token = null, D = null, showPw = false, viewAsg = null, picked = {};
   try { token = sessionStorage.getItem("wc_admin"); } catch (e) {}
 
   function say(text, bad) { var m = $("msg"); m.textContent = text || ""; m.style.color = bad ? "var(--ng)" : "var(--ok)"; }
@@ -107,7 +112,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     if (!/^[1-3][0-9]{2}$/.test(v)) { say("학년 1자리 + 반 2자리로 쓰세요. 2학년 4반은 204입니다.", true); return; }
     $("addCls").value = ""; viewAsg = null; load(v);
   });
-  $("cls").addEventListener("change", function () { viewAsg = null; load(this.value); });
+  $("cls").addEventListener("change", function () { viewAsg = null; picked = {}; load(this.value); });
 
   function load(cls) {
     say("불러오는 중…");
@@ -163,6 +168,10 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     if (!D.students.length) { box.appendChild(el("p", "note", "이 반에 가입한 학생이 아직 없습니다.")); return; }
     var t = el("table", "tbl"), hr = el("tr");
     function th(text, cls) { var h = el("th", cls, text); hr.appendChild(h); return h; }
+    var allTh = th("", "c"), all = document.createElement("input"); all.type = "checkbox"; all.setAttribute("aria-label", "모두 선택");
+    all.checked = D.students.length > 0 && D.students.every(function (x) { return picked[x.sid]; });
+    all.addEventListener("click", function (e) { e.stopPropagation(); D.students.forEach(function (x) { if (all.checked) picked[x.sid] = 1; else delete picked[x.sid]; }); drawTable(); });
+    allTh.appendChild(all);
     th("학번"); th("이름");
     var pwh = th("비번 "), tg = el("button", "btn ghost sm", showPw ? "가리기" : "보기"); tg.type = "button"; tg.style.padding = "0 8px"; tg.style.fontSize = "12px";
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
@@ -174,6 +183,10 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
       log.forEach(function (x) { if (x.group !== "접속" && WC.today(x.ts) === today) todayN++; });
       Object.keys(rec).forEach(function (id) { if (id.indexOf("typing:") === 0) speed = Math.max(speed, rec[id].best); if (id.indexOf("quiz:") === 0) quiz++; });
+      var ctd = el("td", "c"), cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!picked[s.sid]; cb.setAttribute("aria-label", s.sid + " " + s.name + " 선택");
+      ctd.addEventListener("click", function (e) { e.stopPropagation(); });
+      cb.addEventListener("change", function () { if (cb.checked) picked[s.sid] = 1; else delete picked[s.sid]; pickInfo(); });
+      ctd.appendChild(cb); tr.appendChild(ctd);
       tr.appendChild(el("td", null, s.sid)); tr.appendChild(el("td", null, s.name));
       tr.appendChild(el("td", "pw", showPw ? s.pw : "••••"));
       tr.appendChild(el("td", null, s.lastLogin));
@@ -192,7 +205,25 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       t.appendChild(tr);
     });
     box.appendChild(t);
+    pickInfo();
   }
+  function pickedStudents() { return D.students.filter(function (x) { return picked[x.sid]; }).sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }); }
+  function pickInfo() {
+    var n = D ? pickedStudents().length : 0, A = WC_ASSIGNMENTS.filter(function (a) { return a.id === viewAsg; })[0];
+    $("pickInfo").textContent = n ? n + "명 선택 · " + A.name + " 과제지가 학생마다 학번·이름이 인쇄되어 나옵니다." : "표 왼쪽 칸에서 학생을 체크하세요.";
+  }
+  /* 수기 작성 과제지: 숨은 틀에 과제지를 만들고 인쇄 창을 띄움 */
+  $("printBtn").addEventListener("click", function () {
+    var list = pickedStudents(), A = WC_ASSIGNMENTS.filter(function (a) { return a.id === viewAsg; })[0];
+    if (!list.length) { say("출력할 학생을 먼저 체크하세요.", true); return; }
+    var old = document.getElementById("printFrame"); if (old) old.remove();
+    var fr = document.createElement("iframe"); fr.id = "printFrame"; fr.title = "수기 작성 과제지";
+    fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+    fr.onload = function () { fr.contentWindow.focus(); fr.contentWindow.print(); };
+    fr.srcdoc = wcSheetHtml(A, list, WC.today());
+    document.body.appendChild(fr);
+    say(list.length + "명 · " + A.name + " 과제지 인쇄 창을 열었습니다.");
+  });
 
   function detail(s, log) {
     var box = $("detail"); box.hidden = false; box.innerHTML = "";
