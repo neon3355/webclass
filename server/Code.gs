@@ -67,6 +67,7 @@ function route(d) {
   if (d.token !== sign("s:" + sid)) return { ok: false, auth: true, msg: "다시 로그인하세요." };
   if (a === "me") return { ok: true, assign: assignOf(clsOf(sid)), log: logOf(function (r) { return String(r[1]) === sid; }) };
   if (a === "log") return locked(function () { return addLog(sid, d.items || []); });
+  if (a === "changePw") return locked(function () { return changePw(sid, d); });
   return { ok: false, msg: "알 수 없는 요청" };
 }
 
@@ -109,6 +110,14 @@ function samePw(saved, typed) {
   return /^[0-9]+$/.test(saved) && /^[0-9]+$/.test(typed) && saved.replace(/^0+/, "") === typed.replace(/^0+/, "");
 }
 function setText(sh, row, col, value) { var r = sh.getRange(row, col); r.setNumberFormat("@"); r.setValue(String(value)); }
+function changePw(sid, d) {
+  var s = findStudent(sid), now = String(d.oldPw || ""), next = String(d.newPw || "");
+  if (!s) return { ok: false, msg: "가입 정보를 찾지 못했습니다. 선생님께 말하세요." };
+  if (!samePw(s.pw, now)) return { ok: false, msg: "지금 비밀번호가 맞지 않습니다." };
+  if (next.length < 4) return { ok: false, msg: "새 비밀번호는 4글자 이상으로 정하세요." };
+  setText(sheet("students"), s.row, 3, next);
+  return { ok: true };
+}
 function adminResetPw(d) {
   var s = findStudent(String(d.sid));
   if (!s) return { ok: false, msg: "그 학번의 학생이 없습니다." };
