@@ -17,7 +17,8 @@ function doPost(e) {
 var HEAD = {
   students: ["학번", "이름", "비번", "반", "가입한 때", "마지막 로그인"],
   log: ["시각(ms)", "학번", "반", "활동ID", "구분", "활동", "점수", "단위", "달성", "자세히", "시각"],
-  assign: ["반", "과제ID", "배포한 때"]
+  assign: ["반", "과제ID", "배포한 때"],
+  sheets: ["학번", "반", "과제ID", "출력한 때", "제출", "제출 확인한 때"]
 };
 function sheet(name) {
   var ss = SpreadsheetApp.getActiveSpreadsheet(), sh = ss.getSheetByName(name);
@@ -57,6 +58,8 @@ function route(d) {
     if (a === "adminData") return adminData(d);
     if (a === "adminAssign") return locked(function () { return adminAssign(d); });
     if (a === "adminDelete") return locked(function () { return adminDelete(d); });
+    if (a === "adminSheetAdd") return locked(function () { return adminSheetAdd(d); });
+    if (a === "adminSheetSet") return locked(function () { return adminSheetSet(d); });
     return { ok: false, msg: "알 수 없는 요청" };
   }
   var sid = String(d.sid || "");
@@ -135,7 +138,29 @@ function adminData(d) {
   var cls = String(d.cls || classes[0] || "");
   return { ok: true, classes: classes, cls: cls, assign: assignOf(cls),
     students: st.filter(function (r) { return String(r[3]) === cls; }).map(function (r) { return { sid: String(r[0]), name: String(r[1]), pw: String(r[2]), created: String(r[4]), lastLogin: String(r[5]) }; }),
-    log: logOf(function (r) { return String(r[2]) === cls; }) };
+    log: logOf(function (r) { return String(r[2]) === cls; }), sheets: sheetsOf(cls) };
+}
+
+/* ───── 수기 작성 과제지 (누구에게 출력해 줬는지, 제출했는지) ───── */
+function sheetsOf(cls) {
+  return rows("sheets").filter(function (r) { return String(r[1]) === String(cls); }).map(function (r) {
+    return { sid: String(r[0]), aid: String(r[2]), printed: String(r[3]), done: String(r[4]) === "제출", doneAt: String(r[5]) };
+  });
+}
+function adminSheetAdd(d) {
+  var aid = String(d.aid), sh = sheet("sheets"), have = {}, now = when(Date.now());
+  rows("sheets").forEach(function (r) { have[r[0] + "|" + r[2]] = 1; });
+  (d.sids || []).forEach(function (sid) { sid = String(sid); if (!have[sid + "|" + aid]) sh.appendRow([sid, clsOf(sid), aid, now, "", ""]); });
+  return { ok: true, sheets: sheetsOf(String(d.cls)) };
+}
+function adminSheetSet(d) {
+  var sid = String(d.sid), aid = String(d.aid), sh = sheet("sheets"), v = rows("sheets");
+  for (var i = 0; i < v.length; i++) if (String(v[i][0]) === sid && String(v[i][2]) === aid) {
+    if (d.remove) sh.deleteRow(i + 2);
+    else { sh.getRange(i + 2, 5).setValue(d.done ? "제출" : ""); sh.getRange(i + 2, 6).setValue(d.done ? when(Date.now()) : ""); }
+    break;
+  }
+  return { ok: true, sheets: sheetsOf(clsOf(sid)) };
 }
 function adminDelete(d) {
   var s = findStudent(String(d.sid));

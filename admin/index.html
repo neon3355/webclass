@@ -70,6 +70,12 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
     </div>
 
+    <h2>수기 과제지 관리 <span class="note" id="shInfo"></span></h2>
+    <div class="card" style="padding:10px">
+      <div class="tablewrap" id="shTbl"></div>
+      <p class="legend">「출력하기」를 누른 학생이 여기에 기록됩니다. 과제지를 받으면 [제출 확인]을 누르세요. 잘못 기록된 줄은 [기록 지우기]로 지웁니다.</p>
+    </div>
+
     <div class="card detail" id="detail" hidden style="margin-top:14px"></div>
   </section>
 </main>
@@ -119,6 +125,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     return call("adminData", { cls: cls || "" }).then(function (res) {
       if (!res.ok) { say(res.msg, true); return; }
       D = res; say("");
+      if (!D.sheets) { D.sheets = []; D.oldServer = true; }
       if (D.cls && D.classes.indexOf(D.cls) < 0) { D.classes.push(D.cls); D.classes.sort(); }
       var sel = $("cls"); sel.innerHTML = "";
       if (!D.classes.length) { var o0 = el("option", null, "가입한 학생 없음"); o0.value = ""; sel.appendChild(o0); }
@@ -177,7 +184,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
     th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
     A.files.forEach(function (f) { th(f.name, "c"); });
-    th("진행", "c"); th("형성평가", "c");
+    th("진행", "c"); th("형성평가", "c"); th("수기 과제지", "c");
     t.appendChild(hr);
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
       var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
@@ -201,16 +208,49 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       });
       tr.appendChild(el("td", "c", done + " / " + A.files.length * 2));
       tr.appendChild(el("td", "c", quiz ? quiz + "개" : "-"));
+      var shs = D.sheets.filter(function (x) { return x.sid === s.sid && x.aid === A.id; })[0], shTd = el("td", "c");
+      if (shs) shTd.appendChild(el("span", "badge " + (shs.done ? "ok" : "mid"), shs.done ? "제출" : "미제출")); else shTd.textContent = "-";
+      tr.appendChild(shTd);
       tr.addEventListener("click", function () { detail(s, log); });
       t.appendChild(tr);
     });
     box.appendChild(t);
-    pickInfo();
+    pickInfo(); drawSheets();
+  }
+  /* 수기 과제지: 누구에게 출력해 줬는지, 제출했는지 */
+  function drawSheets() {
+    var box = $("shTbl"); box.innerHTML = "";
+    var list = D.sheets.slice().sort(function (a, b) { return a.aid === b.aid ? (a.sid < b.sid ? -1 : 1) : (a.aid < b.aid ? -1 : 1); });
+    var left = list.filter(function (x) { return !x.done; }).length;
+    $("shInfo").textContent = list.length ? "· 출력 " + list.length + "명 · 미제출 " + left + "명" : "";
+    if (D.oldServer) { box.appendChild(el("p", "note", "이 기능을 쓰려면 구글 Apps Script의 서버 코드를 새 버전으로 바꿔 다시 배포해야 합니다. (출력 자체는 지금도 됩니다)")); return; }
+    if (!list.length) { box.appendChild(el("p", "note", "이 반에 수기 과제지를 출력해 준 학생이 없습니다.")); return; }
+    var t = el("table", "tbl"), hr = el("tr");
+    ["학번", "이름", "과제", "출력한 때", "제출", "제출 확인한 때", ""].forEach(function (h) { hr.appendChild(el("th", null, h)); }); t.appendChild(hr);
+    list.forEach(function (x) {
+      var st = D.students.filter(function (s) { return s.sid === x.sid; })[0], A = WC_ASSIGNMENTS.filter(function (a) { return a.id === x.aid; })[0], tr = el("tr");
+      tr.appendChild(el("td", null, x.sid)); tr.appendChild(el("td", null, st ? st.name : "(가입 지워짐)"));
+      tr.appendChild(el("td", null, A ? A.name + " — " + A.title : x.aid)); tr.appendChild(el("td", null, x.printed));
+      var td = el("td"); td.appendChild(el("span", "badge " + (x.done ? "ok" : "mid"), x.done ? "제출" : "미제출")); tr.appendChild(td);
+      tr.appendChild(el("td", null, x.doneAt || "-"));
+      var act = el("td"), b = el("button", "btn sm" + (x.done ? " ghost" : ""), x.done ? "제출 취소" : "제출 확인"), r = el("button", "btn ghost sm", "기록 지우기"), armed = false;
+      b.type = r.type = "button"; r.style.marginLeft = "6px";
+      function send(data, okMsg) {
+        b.disabled = r.disabled = true; data.sid = x.sid; data.aid = x.aid;
+        call("adminSheetSet", data).then(function (res) { if (!res.ok) { say(res.msg, true); b.disabled = r.disabled = false; return; } D.sheets = res.sheets; say(okMsg); drawTable(); })
+          .catch(function () { say("저장하지 못했습니다. 다시 눌러 보세요.", true); b.disabled = r.disabled = false; });
+      }
+      b.addEventListener("click", function () { send({ done: !x.done }, x.sid + " " + (st ? st.name : "") + " · " + (x.done ? "제출 확인을 취소했습니다." : "제출 확인했습니다.")); });
+      r.addEventListener("click", function () { if (!armed) { armed = true; r.textContent = "한 번 더 누르면 지웁니다"; return; } send({ remove: true }, x.sid + " 수기 과제지 기록을 지웠습니다."); });
+      act.appendChild(b); act.appendChild(r); tr.appendChild(act);
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
   }
   function pickedStudents() { return D.students.filter(function (x) { return picked[x.sid]; }).sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }); }
   function pickInfo() {
     var n = D ? pickedStudents().length : 0, A = WC_ASSIGNMENTS.filter(function (a) { return a.id === viewAsg; })[0];
-    $("pickInfo").textContent = n ? n + "명 선택 · " + A.name + " 과제지가 학생마다 학번·이름이 인쇄되어 나옵니다." : "표 왼쪽 칸에서 학생을 체크하세요.";
+    $("pickInfo").textContent = n ? n + "명 선택 · " + A.name + " 과제지가 학생마다 학번·이름이 인쇄되어 나오고, 아래 「수기 과제지 관리」에 기록됩니다." : "표 왼쪽 칸에서 학생을 체크하세요.";
   }
   /* 수기 작성 과제지: 숨은 틀에 과제지를 만들고 인쇄 창을 띄움 */
   $("printBtn").addEventListener("click", function () {
@@ -223,6 +263,10 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     fr.srcdoc = wcSheetHtml(A, list, WC.today());
     document.body.appendChild(fr);
     say(list.length + "명 · " + A.name + " 과제지 인쇄 창을 열었습니다.");
+    /* 누구에게 출력했는지 기록 */
+    call("adminSheetAdd", { cls: D.cls, aid: A.id, sids: list.map(function (x) { return x.sid; }) }).then(function (res) {
+      if (res.ok && res.sheets) { D.sheets = res.sheets; D.oldServer = false; drawTable(); }
+    }).catch(function () {});
   });
 
   function detail(s, log) {
