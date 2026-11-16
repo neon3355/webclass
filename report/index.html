@@ -135,7 +135,7 @@ table.tbl tr.grp th { background: var(--bg); color: var(--sub); font-size: 13px;
   if (WC.online) WC.sync().then(function (ok) { if (ok) draw(); });
 
   /* 비밀번호 바꾸기 */
-  if (WC.online) {
+  if (WC.online && !u.demo) {
     $("pwBox").hidden = false;
     $("pwForm").addEventListener("submit", function (e) {
       e.preventDefault();

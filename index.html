@@ -31,7 +31,7 @@
 .finh { display: flex; justify-content: space-between; align-items: baseline; } .finh span { font-weight: 800; font-size: 20px; color: var(--ok); font-variant-numeric: tabular-nums; }
 .finbar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 6px 0 10px; } .finbar i { display: block; height: 100%; background: var(--ok); }
 .fing { display: grid; gap: 6px; font-size: 14px; }
-.fing .g { display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; } .fing .g b { min-width: 64px; }
+.fing .g { display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; } .fing .g b { min-width: 96px; }
 .fing .p { padding: 1px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--sub); font-variant-numeric: tabular-nums; }
 .fing .p.all { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 700; }
 .now .k { font-size: 13px; font-weight: 700; color: var(--accent); margin: 0; }
@@ -73,6 +73,7 @@
       <div class="finh"><b>내 완주 현황</b><span id="finPct"></span></div>
       <div class="finbar"><i id="finBar"></i></div>
       <div class="fing" id="finG"></div>
+      <p class="note" id="finNote" style="margin:8px 0 0"></p>
     </div>
     <h2>오늘의 순서</h2>
     <div class="steps">
@@ -100,27 +101,29 @@
       return;
     }
     $("hi").textContent = u.name + " 학생, 반갑습니다.";
-    $("clsLine").textContent = WC.clsName(WC.clsOf(u.sid)) + "반 · " + u.sid;
+    $("clsLine").textContent = u.demo ? "시연 모드 · 학생에게 보이는 화면입니다 (기록은 저장되지 않습니다)" : WC.clsName(WC.clsOf(u.sid)) + "반 · " + u.sid;
+    if (u.demo) $("hi").textContent = "학생 화면 시연";
     paint();
     if (WC.online) WC.sync().then(function (ok) { if (ok) paint(); });
   }
   function paint() {
     var as = WC.assignments(), cur = as[as.length - 1];
-    if (WC.online) {
+    if (WC.online || WC.user().demo) {
       $("now").hidden = false;
       $("nowK").textContent = cur ? "이번 과제 · " + cur.name : "이번 과제";
       $("nowT").textContent = cur ? cur.title : "아직 배포된 과제가 없습니다";
       $("nowD").textContent = cur ? cur.files.map(function (f) { return f.name; }).join(" · ") : "선생님이 과제를 배포하면 여기에 나타납니다. 그동안 타자 연습을 하세요.";
     }
     /* 완주 현황 */
-    var pr = WC.progress(WC.records(), WC.online ? (WC.user().assign || []) : null);
+    var pr = WC.progress(WC.records(), WC.online || WC.user().demo ? (WC.user().assign || []) : null);
     $("fin").hidden = !pr.total;
     if (pr.total) {
       $("finPct").textContent = pr.pct + "%"; $("finBar").style.width = pr.pct + "%";
+      $("finNote").textContent = "파일마다 가장 높이 통과한 단계로 계산합니다: 백지 쓰기 " + pr.score.blank + "% · 외워 쓰기 " + pr.score.mem + "% · 보고 쓰기 " + pr.score.see + "%. 백지 쓰기를 바로 통과하면 그 파일은 끝입니다.";
       var fg = $("finG"); fg.innerHTML = "";
       pr.groups.forEach(function (g) {
         var row = document.createElement("div"); row.className = "g";
-        var b = document.createElement("b"); b.textContent = g.name; row.appendChild(b);
+        var b = document.createElement("b"); b.textContent = g.name + " " + g.pct + "%"; row.appendChild(b);
         g.parts.forEach(function (x) { var sp = document.createElement("span"); sp.className = "p" + (x.done === x.total ? " all" : ""); sp.textContent = x.label + " " + x.done + "/" + x.total; row.appendChild(sp); });
         fg.appendChild(row);
       });

@@ -114,7 +114,7 @@
     if (!as.length) { box.appendChild(el("p", "card", "아직 배포된 과제가 없습니다. 선생님이 과제를 배포하면 여기에 나타납니다. 그동안 타자 연습을 하세요.")); return; }
     as.forEach(function (A, i) {
       var head = el("div", "asg");
-      head.appendChild(el("h2", null, (WC.online ? (i === 0 ? "이번 과제 · " : "지난 과제 · ") : "") + A.name + " — " + A.title));
+      head.appendChild(el("h2", null, (WC.online || u.demo ? (i === 0 ? "이번 과제 · " : "지난 과제 · ") : "") + A.name + " — " + A.title));
       box.appendChild(head);
       var grid = el("div", "grid");
       A.files.forEach(function (f) {

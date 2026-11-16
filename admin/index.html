@@ -56,6 +56,13 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     </div>
     <p class="msg" id="msg"></p>
 
+    <div class="card" style="display:flex;gap:8px 12px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+      <b>학생 화면 시연</b>
+      <button class="btn sm" type="button" id="demoCls">이 반 학생에게 보이는 그대로</button>
+      <button class="btn ghost sm" type="button" id="demoAll">모든 과제·형성평가 열어서</button>
+      <span class="note">타자 연습·코드 연습·형성평가를 학생 화면 그대로 미리 보거나 수업에서 보여 줄 수 있습니다. 시연 기록은 저장되지 않고, 오른쪽 위 [시연 끝내기]를 누르면 이 화면으로 돌아옵니다.</span>
+    </div>
+
     <h2>과제 배포</h2>
     <div class="grid" id="asgs" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))"></div>
     <p class="legend">배포하면 이 반 학생의 「코드 연습」에 그 과제가 나타납니다. 가장 나중에 배포한 과제가 「이번 과제」로 보이고, 먼저 배포한 과제는 「지난 과제」로 남습니다.</p>
@@ -66,12 +73,15 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
 
     <h2>학생 현황 <span class="note" id="asgPick"></span></h2>
     <div class="row" style="justify-content:flex-start;align-items:center;margin-bottom:8px">
+      <label class="note" for="cut">과제 완주율</label>
+      <input id="cut" type="number" min="0" max="100" step="5" value="50" style="font:inherit;width:74px;padding:6px 8px;border-radius:8px;border:1.5px solid var(--line);background:var(--card);color:var(--text)">
+      <button class="btn ghost sm" type="button" id="cutBtn">% 미만 학생 체크</button>
       <button class="btn sm" type="button" id="printBtn">선택한 학생 수기 과제지 출력하기</button>
       <span class="note" id="pickInfo">표 왼쪽 칸에서 학생을 체크하세요.</span>
     </div>
     <div class="card" style="padding:10px">
       <div class="tablewrap" id="tbl"></div>
-      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m ok">백</span> 백지 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 완주율 = 배포한 과제(파일마다 보고·외워·백지)와 형성평가 단원·종합 복습 가운데 끝낸 비율 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
+      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m ok">백</span> 백지 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 과제 완주율 = 지금 보는 과제의 파일 5개 평균(파일마다 가장 높이 통과한 단계: 백지 100% · 외워 70% · 보고 40%, 백지를 바로 통과하면 100%) · 전체 완주율 = 배포한 과제 전부와 형성평가 단원·종합 복습까지 합친 비율 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
     </div>
 
     <h2>수기 과제지 관리 <span class="note" id="shInfo"></span></h2>
@@ -208,8 +218,8 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
     th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
     A.files.forEach(function (f) { th(f.name, "c"); });
-    th("진행", "c"); th("완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
-    var pctSum = 0;
+    th("과제 완주율", "c"); th("전체 완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
+    var pctSum = 0, asgSum = 0;
     t.appendChild(hr);
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
       var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
@@ -246,7 +256,8 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
         if (r1) done++; if (r2 && r2.pass) done++; if (r3 && r3.pass) done++;
         tr.appendChild(td);
       });
-      tr.appendChild(el("td", "c", done + " / " + A.files.length * 3));
+      var prA = WC.progress(rec, [A.id]).asg[A.id]; s.asgPct = prA; asgSum += prA;
+      var pa = el("td", "c"); pa.appendChild(el("span", "badge " + (prA === 100 ? "ok" : prA ? "mid" : "todo"), prA + "%")); tr.appendChild(pa);
       var pr = WC.progress(rec, D.assign); pctSum += pr.pct;
       var pc = el("td", "c"); pc.appendChild(el("span", "badge " + (pr.pct === 100 ? "ok" : pr.pct ? "mid" : "todo"), pr.total ? pr.pct + "%" : "-")); tr.appendChild(pc);
       tr.appendChild(el("td", "c", qOn.length ? "통과 " + quiz + " / " + qOn.length + (rv ? " · 복습 " + rv.count + "회(최고 " + rv.best + ")" : "") : "-"));
@@ -257,7 +268,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       t.appendChild(tr);
     });
     box.appendChild(t);
-    $("asgPick").textContent += " · 반 평균 완주율 " + Math.round(pctSum / D.students.length) + "%";
+    $("asgPick").textContent += " · 반 평균: 과제 완주율 " + Math.round(asgSum / D.students.length) + "% · 전체 완주율 " + Math.round(pctSum / D.students.length) + "%";
     pickInfo(); drawSheets();
   }
   /* 수기 과제지: 누구에게 출력해 줬는지, 제출했는지 */
@@ -311,6 +322,24 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       if (res.ok && res.sheets) { D.sheets = res.sheets; D.oldServer = false; drawTable(); }
     }).catch(function () {});
   });
+
+  /* 과제 완주율이 기준보다 낮은 학생을 한 번에 체크 */
+  $("cutBtn").addEventListener("click", function () {
+    var cut = Number($("cut").value); if (isNaN(cut)) return;
+    try { localStorage.setItem("wc_admin_cut", String(cut)); } catch (e) {}
+    picked = {}; var n = 0;
+    D.students.forEach(function (x) { if ((x.asgPct || 0) < cut) { picked[x.sid] = 1; n++; } });
+    drawTable();
+    say("과제 완주율 " + cut + "% 미만 학생 " + n + "명을 체크했습니다. 확인한 뒤 [출력하기]를 누르세요.");
+  });
+  try { var savedCut = localStorage.getItem("wc_admin_cut"); if (savedCut !== null) $("cut").value = savedCut; } catch (e) {}
+  /* 학생 화면 시연 */
+  function demo(all) {
+    var list = all ? WC_ASSIGNMENTS.map(function (a) { return a.id; }).concat(WC_QUIZ_UNITS.map(function (x) { return "q:" + x.id; })) : (D ? D.assign.slice() : []);
+    WC.startDemo(list); location.href = "../index.html";
+  }
+  $("demoCls").addEventListener("click", function () { demo(false); });
+  $("demoAll").addEventListener("click", function () { demo(true); });
 
   function detail(s, log) {
     var box = $("detail"); box.hidden = false; box.innerHTML = "";

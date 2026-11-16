@@ -54,11 +54,11 @@
       var u = WC.user(); if (!u) return;
       var x = { ts: Date.now(), id: id, group: r.group, title: r.title, score: r.score, unit: r.unit || "점", pass: !!r.pass, detail: r.detail || "" };
       var log = WC.log(); log.push(x); lsSet("wc_log:" + u.sid, log);
-      if (WC.online) { var q = lsGet("wc_q:" + u.sid) || []; q.push(x); lsSet("wc_q:" + u.sid, q); WC.flush(); }
+      if (WC.online && !u.demo) { var q = lsGet("wc_q:" + u.sid) || []; q.push(x); lsSet("wc_q:" + u.sid, q); WC.flush(); }
     },
     /* 아직 서버에 못 보낸 기록 보내기 */
     flush: function () {
-      var u = WC.user(); if (!u || !WC.online) return Promise.resolve();
+      var u = WC.user(); if (!u || !WC.online || u.demo) return Promise.resolve();
       var q = lsGet("wc_q:" + u.sid) || []; if (!q.length) return Promise.resolve();
       return WC.api("log", { sid: u.sid, token: u.token, items: q }).then(function (res) {
         if (!res.ok) { if (res.auth) WC.toast("로그인이 풀렸습니다. 다시 로그인하세요."); return; }
@@ -69,7 +69,7 @@
     },
     /* 서버 기록과 배포된 과제를 내려받기 */
     sync: function () {
-      var u = WC.user(); if (!u || !WC.online) return Promise.resolve(false);
+      var u = WC.user(); if (!u || !WC.online || u.demo) return Promise.resolve(false);
       return WC.flush().then(function () { return WC.api("me", { sid: u.sid, token: u.token }); }).then(function (res) {
         if (!res.ok) return false;
         var q = lsGet("wc_q:" + u.sid) || [], have = {};
@@ -82,38 +82,50 @@
     /* 이 학생에게 보이는 과제 목록 (서버가 없으면 전부) */
     assignments: function () {
       var all = window.WC_ASSIGNMENTS || [], u = WC.user();
-      if (!WC.online) return all;
+      if (!WC.online && !(u && u.demo)) return all;
       var on = (u && u.assign) || [];
       return on.map(function (id) { return all.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean);
     },
     /* 이 학생에게 열린 형성평가 단원 (서버가 없으면 전부). 배포 목록에는 "q:단원id" 로 저장됨 */
     quizUnits: function () {
       var all = window.WC_QUIZ_UNITS || [], u = WC.user();
-      if (!WC.online) return all;
+      if (!WC.online && !(u && u.demo)) return all;
       var on = (u && u.assign) || [];
       return all.filter(function (x) { return on.indexOf("q:" + x.id) >= 0; });
     },
     /* 완주 현황: 배포된 과제(파일마다 보고·외워·백지)와 형성평가 단원, 종합 복습을 얼마나 끝냈는지.
        rec = 기록 요약, assign = 배포 목록(없으면 전부). 돌려주는 값: { done, total, pct, groups:[{name, parts:[{label, done, total}]}] } */
     progress: function (rec, assign) {
-      var As = window.WC_ASSIGNMENTS || [], Us = window.WC_QUIZ_UNITS || [], groups = [], done = 0, total = 0;
+      /* 파일 하나의 점수 = 도달한 가장 높은 단계. 백지 쓰기를 통과하면 보고·외워 쓰기를 안 했어도 100점 */
+      var SC = CFG.fileScore || { see: 40, mem: 70, blank: 100 };
+      var As = window.WC_ASSIGNMENTS || [], Us = window.WC_QUIZ_UNITS || [], groups = [], done = 0, total = 0, asg = {};
       if (assign) { As = assign.map(function (id) { return As.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean); Us = Us.filter(function (x) { return assign.indexOf("q:" + x.id) >= 0; }); }
       As.forEach(function (A) {
-        var parts = [["보고 쓰기", 1], ["외워 쓰기", 2], ["백지 쓰기", 3]].map(function (m) {
-          var n = 0;
-          A.files.forEach(function (f) { var r = rec["code:" + A.id + ":" + f.id + ":" + m[1]]; if (r && r.pass) n++; });
-          done += n; total += A.files.length;
-          return { label: m[0], done: n, total: A.files.length };
+        var cnt = [0, 0, 0], sum = 0;
+        A.files.forEach(function (f) {
+          var r1 = rec["code:" + A.id + ":" + f.id + ":1"], r2 = rec["code:" + A.id + ":" + f.id + ":2"], r3 = rec["code:" + A.id + ":" + f.id + ":3"];
+          var p1 = !!r1 || !!r2 || !!r3, p2 = !!(r2 && r2.pass), p3 = !!(r3 && r3.pass);   // 도움 받아 끝낸 외워·백지 쓰기는 보고 쓰기 단계로 계산
+          if (p3) p2 = true;        // 백지 쓰기를 통과한 파일은 아래 단계도 끝낸 것으로 센다
+          if (p1) cnt[0]++; if (p2) cnt[1]++; if (p3) cnt[2]++;
+          sum += p3 ? SC.blank : p2 ? SC.mem : p1 ? SC.see : 0;
         });
-        groups.push({ name: A.name, parts: parts });
+        done += sum / 100; total += A.files.length;
+        asg[A.id] = Math.round(sum / A.files.length);
+        groups.push({ name: A.name, pct: asg[A.id], parts: [{ label: "백지 쓰기", done: cnt[2], total: A.files.length }, { label: "외워 쓰기", done: cnt[1], total: A.files.length }, { label: "보고 쓰기", done: cnt[0], total: A.files.length }] });
       });
       if (Us.length) {
         var n = 0; Us.forEach(function (x) { var r = rec["quiz2:" + x.id]; if (r && r.pass) n++; });
-        var parts = [{ label: "단원 통과", done: n, total: Us.length }]; done += n; total += Us.length;
-        if (Us.some(function (x) { return x.kind === "mcq"; })) { var rv = rec["quiz2:review"], ok = rv && rv.pass ? 1 : 0; parts.push({ label: "종합 복습", done: ok, total: 1 }); done += ok; total += 1; }
-        groups.push({ name: "형성평가", parts: parts });
+        var parts = [{ label: "단원 통과", done: n, total: Us.length }], qd = n, qt = Us.length;
+        if (Us.some(function (x) { return x.kind === "mcq"; })) { var rv = rec["quiz2:review"], ok = rv && rv.pass ? 1 : 0; parts.push({ label: "종합 복습", done: ok, total: 1 }); qd += ok; qt += 1; }
+        done += qd; total += qt;
+        groups.push({ name: "형성평가", pct: Math.round(qd / qt * 100), parts: parts });
       }
-      return { done: done, total: total, pct: total ? Math.round(done / total * 100) : 0, groups: groups };
+      return { total: total, pct: total ? Math.round(done / total * 100) : 0, groups: groups, asg: asg, score: SC };
+    },
+    /* 시연 모드: 선생님이 학생 화면을 미리 보거나 수업에서 보여 줄 때. 기록은 이 브라우저에만 남고 서버로 가지 않는다 */
+    startDemo: function (assign) {
+      ["wc_log:", "wc_q:", "wc_wrong:", "wc_write:"].forEach(function (k) { mem[k + "00000"] = null; try { localStorage.removeItem(k + "00000"); } catch (e) {} });
+      WC.setUser({ sid: "00000", name: "선생님", demo: true, assign: assign });
     },
     /* 틀린 문제 기억 (종합 복습에서 먼저 출제) */
     wrong: function () { var u = WC.user(); return u ? (lsGet("wc_wrong:" + u.sid) || {}) : {}; },
@@ -165,9 +177,9 @@
     b.appendChild(nav);
     var right = document.createElement("div"); right.className = "wc-user";
     if (u) {
-      var chip = document.createElement("span"); chip.className = "wc-chip"; chip.id = "wcUserChip"; chip.textContent = u.sid + " " + u.name;
-      var out = document.createElement("button"); out.type = "button"; out.textContent = WC.online ? "로그아웃" : "바꾸기";
-      out.addEventListener("click", function () { WC.clearUser(); location.href = ROOT + "index.html"; });
+      var chip = document.createElement("span"); chip.className = "wc-chip"; chip.id = "wcUserChip"; chip.textContent = u.demo ? "시연 중 · " + u.name : u.sid + " " + u.name;
+      var out = document.createElement("button"); out.type = "button"; out.textContent = u.demo ? "시연 끝내기" : WC.online ? "로그아웃" : "바꾸기";
+      out.addEventListener("click", function () { WC.clearUser(); location.href = ROOT + (u.demo ? "admin/index.html" : "index.html"); });
       right.appendChild(chip); right.appendChild(out);
     }
     b.appendChild(right);

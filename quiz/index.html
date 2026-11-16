@@ -53,7 +53,7 @@ a.u:hover { border-color: var(--accent); }
     /* 종합 복습: 열린 단원을 모두 통과해야 열림 */
     var hasMcq = units.some(function (x) { return x.kind === "mcq"; });
     if (hasMcq) {
-      var open = passed === units.length, rr = rec["quiz2:review"];
+      var open = passed === units.length || !!WC.user().demo, rr = rec["quiz2:review"];
       var b = el(open ? "a" : "div", "card u" + (open ? "" : " lock")); if (open) b.href = "unit.html?u=review";
       b.appendChild(el("div", "n", "★"));
       var m2 = el("div"); m2.appendChild(el("h3", null, "종합 복습")); m2.appendChild(el("p", null, "모든 단원에서 매번 다른 " + WC_QUIZ_REVIEW + "문제 · 전에 틀린 문제가 먼저 나옵니다")); b.appendChild(m2);
