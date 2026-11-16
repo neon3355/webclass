@@ -102,7 +102,8 @@ function wcProgram(p) {
       { t: "</nav>", h: "메뉴 영역 끝" }], Z) },
     { id: "footer", name: "footer.jsp", desc: "저작권과 내 학번·이름", lines: A.concat(B, [
       { t: "<footer>", h: "맨 아래 영역 시작" },
-      { t: "Copyrightⓒ2026 {sid} {name} All rights reserved.", h: "저작권 문구: Copyrightⓒ2026 내학번 내이름 All rights reserved.  (ⓒ는 (c)로 써도 됩니다)", in: 1 },
+      { t: "Copyrightⓒ2026 {sid} {name} All rights reserved.", h: "저작권 문구: Copyrightⓒ2026 내학번 내이름 All rights reserved.", in: 1,
+        tip: "ⓒ 입력 방법: 한글 ㅇ(이응)을 치고 키보드의 [한자] 키를 누른 뒤 목록에서 ⓒ를 고릅니다. 어려우면 (c) 로 써도 정답입니다." },
       { t: "</footer>", h: "맨 아래 영역 끝" }], Z) },
     { id: "index", name: "index.jsp", desc: "홈 화면 (프로그램 소개)", lines: A.concat(B, [INC_H,
       { t: "<section>", h: "본문 영역 시작" },

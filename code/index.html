@@ -48,6 +48,7 @@
 .msg { margin-top: 8px; font-size: 14px; font-weight: 600; min-height: 1.6em; }
 .msg.ng { color: var(--ng); } .msg.ok { color: var(--ok); }
 .msg code { background: var(--accent-soft); color: var(--text); padding: 1px 5px; border-radius: 4px; }
+.tip { margin-top: 6px; font-size: 14px; background: var(--mid-soft); color: var(--text); border-left: 4px solid var(--mid); border-radius: 6px; padding: 6px 10px; }
 .legend2 { font-size: 13px; color: var(--sub); margin: 8px 0 0; }
 </style>
 </head>
@@ -80,6 +81,7 @@
         <button class="btn ghost" type="button" id="peekBtn" hidden>보기</button>
       </div>
       <div class="msg" id="msg"></div>
+      <div class="tip" id="tip" hidden></div>
     </div>
   </section>
 
@@ -177,7 +179,7 @@
   /* ───── 연습 ───── */
   var S = null, timer = null;
   function start(A, f, m) {
-    var lines = f.lines.map(function (l) { return { t: l.t ? fill(l.t) : null, auto: l.auto, blank: l.blank, h: l.h ? fill(l.h) : "", in: l.in || 0, st: l.t ? "todo" : "auto" }; });
+    var lines = f.lines.map(function (l) { return { t: l.t ? fill(l.t) : null, auto: l.auto, blank: l.blank, h: l.h ? fill(l.h) : "", tip: l.tip || "", in: l.in || 0, st: l.t ? "todo" : "auto" }; });
     pvFull = false;
     S = { A: A, f: f, m: m, lines: lines, cur: -1, start: null, tries: 0, firstOk: 0, helped: 0, errs: 0, total: lines.filter(function (l) { return l.t; }).length, doneN: 0 };
     $("menu").hidden = true; $("done").hidden = true; $("play").hidden = false;
@@ -192,6 +194,7 @@
     S.cur = i; S.tries = 0; S.peeked = false;
     if (i >= S.lines.length) return finish();
     S.lines[i].st = "cur";
+    $("tip").hidden = !S.lines[i].tip; $("tip").textContent = S.lines[i].tip ? "💡 " + S.lines[i].tip : "";
     render();
     var inp = $("codein"); inp.value = ""; inp.classList.remove("err"); inp.focus();
   }
