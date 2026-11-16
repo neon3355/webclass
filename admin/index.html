@@ -60,6 +60,10 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     <div class="grid" id="asgs" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,400px),1fr))"></div>
     <p class="legend">배포하면 이 반 학생의 「코드 연습」에 그 과제가 나타납니다. 가장 나중에 배포한 과제가 「이번 과제」로 보이고, 먼저 배포한 과제는 「지난 과제」로 남습니다.</p>
 
+    <h2>형성평가 배포</h2>
+    <div class="grid" id="qzs" style="grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))"></div>
+    <p class="legend">배포한 단원만 이 반 학생의 「형성평가」에 나타납니다. 배포한 단원을 모두 통과한 학생에게 종합 복습이 열립니다.</p>
+
     <h2>학생 현황 <span class="note" id="asgPick"></span></h2>
     <div class="row" style="justify-content:flex-start;align-items:center;margin-bottom:8px">
       <button class="btn sm" type="button" id="printBtn">선택한 학생 수기 과제지 출력하기</button>
@@ -81,6 +85,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
 </main>
 <script src="../assets/config.js"></script>
 <script src="../assets/data.js"></script>
+<script src="../assets/quizdata.js"></script>
 <script src="../assets/sheet.js"></script>
 <script src="../assets/common.js"></script>
 <script>
@@ -141,7 +146,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     $("info").textContent = "학생 " + D.students.length + "명 · 오늘 접속 " + Object.keys(active).length + "명";
     /* 과제 카드 */
     var box = $("asgs"); box.innerHTML = "";
-    var cur = D.assign[D.assign.length - 1];
+    var asgOnly = D.assign.filter(function (x) { return x.indexOf("q:") !== 0; }), cur = asgOnly[asgOnly.length - 1];
     if (!viewAsg || !WC_ASSIGNMENTS.some(function (a) { return a.id === viewAsg; })) viewAsg = cur || WC_ASSIGNMENTS[0].id;
     WC_ASSIGNMENTS.forEach(function (A) {
       var on = D.assign.indexOf(A.id) >= 0, card = el("div", "card asg" + (on ? " on" : ""));
@@ -163,6 +168,25 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       act.appendChild(b);
       if (A.id !== viewAsg) { var v = el("button", "btn ghost sm", "현황 보기"); v.type = "button"; v.addEventListener("click", function () { viewAsg = A.id; draw(); }); act.appendChild(v); }
       card.appendChild(act); box.appendChild(card);
+    });
+    /* 형성평가 단원 카드 ("q:단원id" 로 배포 목록에 저장) */
+    var qb = $("qzs"); qb.innerHTML = "";
+    WC_QUIZ_UNITS.forEach(function (U) {
+      var key = "q:" + U.id, on = D.assign.indexOf(key) >= 0, card = el("div", "card asg" + (on ? " on" : ""));
+      card.appendChild(el("h3", null, U.name));
+      card.appendChild(el("p", null, U.desc));
+      var act = el("div", "act");
+      act.appendChild(el("span", "badge " + (on ? "ok" : "todo"), on ? "배포됨" : "배포 안 함"));
+      var b = el("button", "btn sm" + (on ? " ghost" : ""), on ? "거두기" : "이 반에 배포"); b.type = "button";
+      b.addEventListener("click", function () {
+        if (!D.cls) { say("먼저 반을 고르거나 추가하세요.", true); return; }
+        b.disabled = true; say("저장하는 중…");
+        call("adminAssign", { cls: D.cls, aid: key, on: !on }).then(function (res) {
+          if (!res.ok) { say(res.msg, true); b.disabled = false; return; }
+          D.assign = res.assign; say(WC.clsName(D.cls) + "반 · 형성평가 「" + U.name + "」 " + (on ? "거두었습니다." : "배포했습니다.")); draw();
+        }).catch(function () { say("저장하지 못했습니다. 다시 눌러 보세요.", true); b.disabled = false; });
+      });
+      act.appendChild(b); card.appendChild(act); qb.appendChild(card);
     });
     drawTable();
   }
@@ -189,7 +213,9 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
       var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
       log.forEach(function (x) { if (x.group !== "접속" && WC.today(x.ts) === today) todayN++; });
-      Object.keys(rec).forEach(function (id) { if (id.indexOf("typing:") === 0) speed = Math.max(speed, rec[id].best); if (id.indexOf("quiz:") === 0) quiz++; });
+      Object.keys(rec).forEach(function (id) { if (id.indexOf("typing:") === 0) speed = Math.max(speed, rec[id].best); });
+      var qOn = WC_QUIZ_UNITS.filter(function (U) { return D.assign.indexOf("q:" + U.id) >= 0; }), rv = rec["quiz2:review"];
+      qOn.forEach(function (U) { var r = rec["quiz2:" + U.id]; if (r && r.pass) quiz++; });
       var ctd = el("td", "c"), cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!picked[s.sid]; cb.setAttribute("aria-label", s.sid + " " + s.name + " 선택");
       ctd.addEventListener("click", function (e) { e.stopPropagation(); });
       cb.addEventListener("change", function () { if (cb.checked) picked[s.sid] = 1; else delete picked[s.sid]; pickInfo(); });
@@ -218,7 +244,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
         tr.appendChild(td);
       });
       tr.appendChild(el("td", "c", done + " / " + A.files.length * 2));
-      tr.appendChild(el("td", "c", quiz ? quiz + "개" : "-"));
+      tr.appendChild(el("td", "c", qOn.length ? "통과 " + quiz + " / " + qOn.length + (rv ? " · 복습 " + rv.count + "회(최고 " + rv.best + ")" : "") : "-"));
       var shs = D.sheets.filter(function (x) { return x.sid === s.sid && x.aid === A.id; })[0], shTd = el("td", "c");
       if (shs) shTd.appendChild(el("span", "badge " + (shs.done ? "ok" : "mid"), shs.done ? "제출" : "미제출")); else shTd.textContent = "-";
       tr.appendChild(shTd);

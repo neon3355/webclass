@@ -40,6 +40,7 @@
       var all = {};
       log.slice().sort(function (a, b) { return a.ts - b.ts; }).forEach(function (x) {
         if (x.group === "접속") return;
+        if (x.id.indexOf("quiz:") === 0) return;      // 형성평가를 다시 구성하기 전의 기록은 세지 않음
         var o = all[x.id];
         if (!o) o = all[x.id] = { best: -1, count: 0, pass: false };
         o.group = x.group; o.title = x.title; o.unit = x.unit || "점"; o.last = x.score; o.lastDetail = x.detail || ""; o.lastTs = x.ts; o.count++;
@@ -85,6 +86,16 @@
       var on = (u && u.assign) || [];
       return on.map(function (id) { return all.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean);
     },
+    /* 이 학생에게 열린 형성평가 단원 (서버가 없으면 전부). 배포 목록에는 "q:단원id" 로 저장됨 */
+    quizUnits: function () {
+      var all = window.WC_QUIZ_UNITS || [], u = WC.user();
+      if (!WC.online) return all;
+      var on = (u && u.assign) || [];
+      return all.filter(function (x) { return on.indexOf("q:" + x.id) >= 0; });
+    },
+    /* 틀린 문제 기억 (종합 복습에서 먼저 출제) */
+    wrong: function () { var u = WC.user(); return u ? (lsGet("wc_wrong:" + u.sid) || {}) : {}; },
+    setWrong: function (m) { var u = WC.user(); if (u) lsSet("wc_wrong:" + u.sid, m); },
     /* 붙여넣기·끌어다 놓기 차단 */
     blockPaste: function () {
       function block(e) { e.preventDefault(); WC.toast("복사·붙여넣기는 쓸 수 없습니다. 직접 입력하세요."); }
@@ -160,10 +171,12 @@
         if (isNaN(score)) return;
         var rt = res.querySelector(".rtitle"), title = rt ? rt.textContent.replace(/\s*결과\s*/, " ").trim() : "";
         if (title.length < 8) title = document.title;                 // "형성평가 결과"처럼 짧은 제목은 문서 제목 사용
-        var id = "quiz:" + location.pathname.replace(/index\.html$/, "") + "#" + (res.id || "r");
+        var unit = document.body.getAttribute("data-wc-quiz");
+        var id = unit ? "quiz2:" + unit : "quiz2:" + location.pathname.replace(/index\.html$/, "") + "#" + (res.id || "r");
+        var passAt = Number(document.body.getAttribute("data-wc-pass") || 100);
         var sig = id + "|" + score + "|" + res.textContent.length;
         if (seen[sig]) return; seen[sig] = true;
-        WC.addRecord(id, { group: "형성평가", title: title, score: score, unit: "점", pass: score >= 100, detail: "" });
+        WC.addRecord(id, { group: "형성평가", title: title, score: score, unit: "점", pass: score >= passAt, detail: "" });
       });
     }
     var t = null;

@@ -67,7 +67,7 @@
       <a class="card step" href="typing/index.html"><div class="n">1</div><div><h3>타자 연습</h3><p>수업 코드에 나오는 낱말 → 기호 → 코드 한 줄. 타수와 정확도를 잽니다.</p><div class="st" id="st1"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="code/index.html"><div class="n">2</div><div><h3>코드 보고 쓰기</h3><p>이번 과제의 style.css와 JSP 파일을 한 줄씩 보고 따라 씁니다. 실행 화면도 함께 보입니다.</p><div class="st" id="st2"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="code/index.html"><div class="n">3</div><div><h3>코드 외워 쓰기</h3><p>코드는 가리고 설명만 보고 씁니다. 보고 쓰기를 끝낸 파일부터 도전하세요.</p><div class="st" id="st3"></div></div><span class="go">시작 →</span></a>
-      <a class="card step" href="quiz/index.html"><div class="n">4</div><div><h3>형성평가</h3><p>배운 내용을 문제로 확인합니다.</p><div class="st" id="st4"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="quiz/index.html"><div class="n">4</div><div><h3>형성평가</h3><p>단원별로 90점 이상이면 통과. 모두 통과하면 종합 복습이 열립니다.</p><div class="st" id="st4"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="report/index.html"><div class="n">5</div><div><h3>내 과제 현황</h3><p>오늘 한 활동과 날짜별 연습 기록을 봅니다.</p><div class="st" id="st5"></div></div><span class="go">보기 →</span></a>
     </div>
   </section>
@@ -107,7 +107,7 @@
       if (id.indexOf("typing:") === 0) { t.typing++; bestSpeed = Math.max(bestSpeed, r.best); }
       else if (id.indexOf("code:") === 0 && /:1$/.test(id)) t.see++;
       else if (id.indexOf("code:") === 0 && /:2$/.test(id)) t.mem++;
-      else if (id.indexOf("quiz:") === 0) t.quiz++;
+      else if (id.indexOf("quiz2:") === 0) t.quiz++;
     });
     function set(id, txt) { $(id).textContent = txt; }
     set("st1", t.typing ? "오늘 " + t.typing + "단계 연습 · 최고 " + bestSpeed + "타" : "");

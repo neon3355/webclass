@@ -6,55 +6,66 @@
 <title>형성평가</title>
 <link rel="stylesheet" href="../assets/common.css">
 <style>
-.q { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit; }
-.q:hover { border-color: var(--accent); }
-.q h3 { margin: 0; font-size: 16px; }
-.q p { margin: 0; font-size: 14px; color: var(--sub); flex: 1; }
-.q .st { min-height: 22px; margin-top: 6px; }
+.u { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; text-decoration: none; color: inherit; margin-bottom: 10px; }
+a.u:hover { border-color: var(--accent); }
+.u .n { width: 44px; height: 44px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; }
+.u.pass { border-color: var(--ok); } .u.pass .n { background: var(--ok-soft); color: var(--ok); }
+.u.lock { opacity: .6; }
+.u h3 { margin: 0; font-size: 16px; } .u p { margin: 0; font-size: 14px; color: var(--sub); }
+.u .st { text-align: right; font-size: 13px; white-space: nowrap; }
+.prog { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; font-weight: 700; }
+.prog .meter { flex: 1; height: 10px; background: var(--line); border-radius: 99px; overflow: hidden; } .prog .meter i { display: block; height: 100%; background: var(--ok); }
+@media (max-width: 480px) { .u { grid-template-columns: 36px 1fr; } .u .n { width: 36px; height: 36px; } .u .st { grid-column: 2; text-align: left; } }
 </style>
 </head>
 <body data-wc-page>
 <main class="wrap">
   <h1>형성평가</h1>
-  <p class="lead">배운 내용을 문제로 확인합니다. 학번과 이름은 자동으로 들어가고, 채점한 점수는 「내 과제」에 기록됩니다.</p>
+  <p class="lead">단원마다 <b id="passAt"></b>점 이상이면 통과입니다. 통과한 단원은 다시 들어와도 그대로 남습니다. 단원을 모두 통과하면 종합 복습이 열립니다.</p>
+  <div class="prog" id="prog" hidden><span id="progT"></span><div class="meter"><i id="progB"></i></div></div>
   <div id="list"></div>
 </main>
 <script src="../assets/config.js"></script>
+<script src="../assets/quizdata.js"></script>
 <script src="../assets/common.js"></script>
 <script>
 (function () {
   if (!WC.user()) return;
+  function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  /* 평가를 추가하려면 여기에 한 줄을 더 쓰면 됩니다. dir = quiz 폴더 안의 폴더 이름 */
-  var SECTIONS = [
-    { name: "화면 디자인 (style.css)", items: [
-      { dir: "basic", title: "화면구현 형성평가", desc: "기본 태그와 CSS · 객관식 10문제" },
-      { dir: "style-css", title: "style.css 형성평가", desc: "객관식 20문제" },
-      { dir: "style-practice", title: "style.css 직접 입력 연습", desc: "값 채우기 → 백지 쓰기 4단계 · 단계마다 100점 통과" },
-      { dir: "style-practice-90", title: "style.css 직접 입력 연습 (90점 통과)", desc: "같은 4단계 · 단계마다 90점 통과" } ] },
-    { name: "JSP 페이지", items: [
-      { dir: "jsp-pages", title: "JSP 페이지 구성 형성평가", desc: "header.jsp · footer.jsp · 주요 페이지 · 객관식 20문제" } ] },
-    { name: "수행평가 대비", items: [
-      { dir: "exam-prep", title: "2차 수행평가 대비 코드 연습", desc: "코드 연습과 모의 수행평가" },
-      { dir: "exam-check", title: "수행평가 대비 최종 점검", desc: "형성평가 20문제를 다 풀면 최종평가 20문제" },
-      { dir: "devenv", title: "개발환경 구축하기 최종 점검", desc: "낱말로 답하는 20문제" } ] }
-  ];
-  var rec = WC.records(), base = location.pathname.replace(/index\.html$/, ""), list = document.getElementById("list");
-  SECTIONS.forEach(function (s) {
-    list.appendChild(el("h2", null, s.name));
-    var grid = el("div", "grid");
-    s.items.forEach(function (it) {
-      var a = el("a", "card q"); a.href = it.dir + "/index.html";
-      a.appendChild(el("h3", null, it.title)); a.appendChild(el("p", null, it.desc));
-      var best = null, cnt = 0, pass = false, pre = "quiz:" + base + it.dir + "/";
-      Object.keys(rec).forEach(function (id) { if (id.indexOf(pre) === 0) { var r = rec[id]; best = best === null ? r.best : Math.max(best, r.best); cnt += r.count; pass = pass || r.pass; } });
+  $("passAt").textContent = WC_QUIZ_PASS;
+  function draw() {
+    var rec = WC.records(), units = WC.quizUnits(), list = $("list"); list.innerHTML = "";
+    if (!units.length) { $("prog").hidden = true; list.appendChild(el("p", "card", "아직 열린 형성평가가 없습니다. 선생님이 단원을 열면 여기에 나타납니다.")); return; }
+    var passed = 0;
+    units.forEach(function (x, i) {
+      var r = rec["quiz2:" + x.id], ok = !!(r && r.pass);
+      if (ok) passed++;
+      var a = el("a", "card u" + (ok ? " pass" : "")); a.href = x.kind === "mcq" ? "unit.html?u=" + x.id : x.href;
+      a.appendChild(el("div", "n", ok ? "✓" : String(i + 1)));
+      var mid = el("div"); mid.appendChild(el("h3", null, x.name)); mid.appendChild(el("p", null, x.desc + (x.kind === "mcq" ? " · " + x.count + "문제" : ""))); a.appendChild(mid);
       var st = el("div", "st");
-      if (best !== null) st.appendChild(el("span", "badge " + (pass ? "ok" : "mid"), "최고 " + best + "점 · " + cnt + "회"));
-      a.appendChild(st);
-      grid.appendChild(a);
+      if (r) { st.appendChild(el("span", "badge " + (ok ? "ok" : "mid"), ok ? "통과" : "도전 중")); st.appendChild(el("div", null, "최고 " + r.best + "점 · " + r.count + "회")); }
+      else st.appendChild(el("span", "badge todo", "아직 안 함"));
+      a.appendChild(st); list.appendChild(a);
     });
-    list.appendChild(grid);
-  });
+    $("prog").hidden = false; $("progT").textContent = "통과 " + passed + " / " + units.length; $("progB").style.width = (passed / units.length * 100) + "%";
+    /* 종합 복습: 열린 단원을 모두 통과해야 열림 */
+    var hasMcq = units.some(function (x) { return x.kind === "mcq"; });
+    if (hasMcq) {
+      var open = passed === units.length, rr = rec["quiz2:review"];
+      var b = el(open ? "a" : "div", "card u" + (open ? "" : " lock")); if (open) b.href = "unit.html?u=review";
+      b.appendChild(el("div", "n", "★"));
+      var m2 = el("div"); m2.appendChild(el("h3", null, "종합 복습")); m2.appendChild(el("p", null, "모든 단원에서 매번 다른 " + WC_QUIZ_REVIEW + "문제 · 전에 틀린 문제가 먼저 나옵니다")); b.appendChild(m2);
+      var s2 = el("div", "st");
+      if (!open) s2.appendChild(el("span", "badge todo", "잠김 · 단원을 모두 통과하면 열림"));
+      else if (rr) { s2.appendChild(el("span", "badge " + (rr.pass ? "ok" : "mid"), rr.pass ? "통과" : "도전 중")); s2.appendChild(el("div", null, "최고 " + rr.best + "점 · " + rr.count + "회")); }
+      else s2.appendChild(el("span", "badge mid", "열림"));
+      b.appendChild(s2); list.appendChild(b);
+    }
+  }
+  draw();
+  if (WC.online) WC.sync().then(function (ok) { if (ok) draw(); });
 })();
 </script>
 </body>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>형성평가</title>
+<link rel="stylesheet" href="../assets/common.css">
+<style>
+.q { margin-bottom: 12px; }
+.q .qh { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 8px; }
+.q .no { font-weight: 800; color: var(--accent); }
+.q .qt { font-weight: 700; flex: 1 1 260px; }
+.q pre { background: var(--code-bg); color: var(--code-text); border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; overflow-x: auto; font-size: 14px; line-height: 1.55; white-space: pre; }
+.opts { display: grid; gap: 6px; }
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 8px; cursor: pointer; background: var(--bg); }
+.opt:hover { border-color: var(--accent); }
+.opt input { margin-top: 4px; flex: none; }
+.opt .n { font-weight: 700; color: var(--sub); flex: none; }
+.opt .t { min-width: 0; overflow-wrap: anywhere; }
+.opt .t.mono { white-space: pre-wrap; font-size: 14px; }
+.opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+.q.need { border-color: var(--ng); }
+.q.ok { border-color: var(--ok); } .q.ng { border-color: var(--ng); }
+.q .fb { margin-top: 10px; padding: 8px 12px; border-radius: 8px; font-size: 14px; }
+.q .fb.ok { background: var(--ok-soft); color: var(--text); border-left: 4px solid var(--ok); }
+.q .fb.ng { background: var(--ng-soft); color: var(--text); border-left: 4px solid var(--ng); }
+.q .fb b { display: block; }
+.q.graded .opt { cursor: default; } .q.graded .opt:hover { border-color: var(--line); } .q.graded .opt.sel:hover { border-color: var(--accent); }
+.dock { position: sticky; bottom: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px 12px 0 0; padding: 10px 14px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; box-shadow: 0 -4px 14px rgba(0,0,0,.08); }
+.dock .cnt { font-variant-numeric: tabular-nums; color: var(--sub); }
+.dock .btn { margin-left: auto; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 4px; margin: 10px 0; }
+.grid2 a { display: block; text-align: center; padding: 4px 0; border-radius: 6px; font-weight: 700; font-size: 13px; text-decoration: none; }
+.grid2 a.o { background: var(--ok-soft); color: var(--ok); } .grid2 a.x { background: var(--ng-soft); color: var(--ng); }
+</style>
+</head>
+<body data-wc-page>
+<main class="wrap">
+  <h1 id="title"></h1>
+  <p class="lead" id="lead"></p>
+  <section class="card result" id="res" hidden></section>
+  <div id="list"></div>
+  <div class="dock" id="dock">
+    <span class="cnt">답한 문제 <b id="done">0</b> / <b id="total">0</b></span>
+    <button class="btn big" type="button" id="gradeBtn">채점하기</button>
+  </div>
+  <p class="note" style="text-align:center;margin-top:14px"><a href="index.html">형성평가 목록으로</a></p>
+</main>
+<script src="../assets/config.js"></script>
+<script src="../assets/quizdata.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+(function () {
+  var u = WC.user(); if (!u) return;
+  WC.blockPaste();
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  var NUMS = ["①", "②", "③", "④"], PASS = WC_QUIZ_PASS;
+  var uid = new URLSearchParams(location.search).get("u") || "", review = uid === "review";
+  var unit = WC_QUIZ_UNITS.filter(function (x) { return x.id === uid && x.kind === "mcq"; })[0];
+  var open = WC.quizUnits(), mcqOpen = open.filter(function (x) { return x.kind === "mcq"; });
+  if (!review && (!unit || open.indexOf(unit) < 0)) { location.replace("index.html"); return; }
+  if (review && !mcqOpen.length) { location.replace("index.html"); return; }
+
+  /* 문제 고르기: 단원 평가는 그 단원에서, 종합 복습은 열린 단원 전체에서 (전에 틀린 문제 먼저) */
+  var picked, name;
+  if (review) {
+    var ids = mcqOpen.map(function (x) { return x.id; }), pool = WC_QUIZ.filter(function (q) { return ids.indexOf(q.u) >= 0; }), wrong = WC.wrong();
+    var first = shuffle(pool.filter(function (q) { return wrong[q.id]; })).slice(0, Math.ceil(WC_QUIZ_REVIEW / 2));
+    var rest = shuffle(pool.filter(function (q) { return first.indexOf(q) < 0; }));
+    picked = shuffle(first.concat(rest).slice(0, WC_QUIZ_REVIEW)); name = "종합 복습";
+  } else {
+    picked = shuffle(WC_QUIZ.filter(function (q) { return q.u === unit.id; })).slice(0, unit.count); name = unit.name;
+  }
+  document.title = name + " 형성평가";
+  $("title").textContent = name;
+  $("lead").textContent = picked.length + "문제 · " + PASS + "점 이상이면 통과입니다. 문제와 보기 순서는 할 때마다 바뀝니다." + (review ? " 전에 틀린 문제가 먼저 나옵니다." : "");
+  $("total").textContent = picked.length;
+
+  var S = picked.map(function (q) { return { q: q, perm: shuffle([0, 1, 2, 3]), pick: -1, card: null }; }), start = null, graded = false;
+  S.forEach(function (st, i) {
+    var q = st.q, card = el("section", "card q"); card.id = "q" + (i + 1);
+    var qh = el("div", "qh"); qh.appendChild(el("span", "no", (i + 1) + ".")); qh.appendChild(el("span", "qt", q.q)); card.appendChild(qh);
+    if (q.code) { var pre = el("pre"); pre.appendChild(el("code", null, q.code)); card.appendChild(pre); }
+    var opts = el("div", "opts"); opts.setAttribute("role", "radiogroup"); opts.setAttribute("aria-label", (i + 1) + "번 보기");
+    st.perm.forEach(function (orig, pos) {
+      var lab = el("label", "opt"), r = document.createElement("input"); r.type = "radio"; r.name = "q" + i; r.value = String(pos);
+      lab.appendChild(r); lab.appendChild(el("span", "n", NUMS[pos])); lab.appendChild(el("span", "t" + (q.codeOpts ? " mono" : ""), q.opts[orig]));
+      r.addEventListener("change", function () {
+        if (graded) return;
+        if (!start) start = Date.now();
+        st.pick = pos; card.classList.remove("need");
+        Array.prototype.forEach.call(opts.children, function (o, k) { o.classList.toggle("sel", k === pos); });
+        count();
+      });
+      opts.appendChild(lab);
+    });
+    card.appendChild(opts);
+    st.card = card; $("list").appendChild(card);
+  });
+  function count() { $("done").textContent = S.filter(function (x) { return x.pick >= 0; }).length; }
+
+  $("gradeBtn").addEventListener("click", function () {
+    if (graded) { location.reload(); return; }
+    var miss = S.filter(function (x) { return x.pick < 0; });
+    if (miss.length) {
+      S.forEach(function (x) { x.card.classList.toggle("need", x.pick < 0); });
+      WC.toast("아직 답하지 않은 문제가 " + miss.length + "개 있습니다.");
+      miss[0].card.scrollIntoView({ block: "center" }); return;
+    }
+    graded = true;
+    var ok = 0, wrong = WC.wrong(), time = start ? Date.now() - start : 0;
+    S.forEach(function (st) {
+      var q = st.q, orig = st.perm[st.pick], right = orig === q.ans;
+      if (right) { ok++; delete wrong[q.id]; } else wrong[q.id] = 1;
+      st.right = right;
+      st.card.classList.add("graded", right ? "ok" : "ng");
+      Array.prototype.forEach.call(st.card.querySelectorAll("input"), function (r) { r.disabled = true; });
+      /* 맞으면 근거를, 틀리면 고른 보기가 왜 틀렸는지만 보여 준다 (정답은 알려 주지 않음) */
+      var fb = el("div", "fb " + (right ? "ok" : "ng"));
+      fb.appendChild(el("b", null, right ? "✓ 맞았습니다" : "✗ 틀렸습니다 — 고른 보기 " + NUMS[st.pick]));
+      fb.appendChild(document.createTextNode(right ? q.basis : (q.why[orig] || "다시 생각해 보세요.")));
+      st.card.appendChild(fb);
+    });
+    WC.setWrong(wrong);
+    var score = Math.round(ok / S.length * 100), pass = score >= PASS;
+    WC.addRecord("quiz2:" + (review ? "review" : unit.id), { group: "형성평가", title: name, score: score, unit: "점", detail: ok + "/" + S.length + " · " + WC.mmss(time), pass: pass });
+    var res = $("res"); res.innerHTML = ""; res.hidden = false;
+    res.appendChild(el("p", "rtitle", name + " 형성평가 결과"));
+    res.appendChild(el("p", "who", u.sid + " " + u.name));
+    var sc = el("div", "score", String(score)); sc.appendChild(el("small", null, " 점")); res.appendChild(sc);
+    res.appendChild(el("p", "rdetail", "맞은 문제 " + ok + " / " + S.length + " · 걸린 시간 " + WC.mmss(time) + " · " + WC.stamp(Date.now())));
+    if (pass) res.appendChild(el("div", "stamp", "✓ 통과 (" + PASS + "점 이상)"));
+    else res.appendChild(el("p", "again", PASS + "점 이상이면 통과입니다. 틀린 문제의 설명을 읽고 다시 도전하세요."));
+    var g = el("div", "grid2");
+    S.forEach(function (st, i) { var a = el("a", st.right ? "o" : "x", (i + 1) + (st.right ? " ○" : " ✗")); a.href = "#q" + (i + 1); g.appendChild(a); });
+    res.appendChild(g);
+    var row = el("div", "row");
+    var again = el("button", "btn" + (pass ? " ghost" : ""), "다시 풀기"); again.type = "button"; again.addEventListener("click", function () { location.reload(); });
+    var back = el("a", "btn" + (pass ? "" : " ghost"), "형성평가 목록"); back.href = "index.html";
+    row.appendChild(again); row.appendChild(back); res.appendChild(row);
+    $("gradeBtn").textContent = "다시 풀기";
+    $("dock").hidden = true;
+    window.scrollTo(0, 0);
+  });
+  count();
+})();
+</script>
+</body>
+</html>

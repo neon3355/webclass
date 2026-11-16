@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>개발환경 구축하기 최종 점검</title>
+<title>개발환경 구축</title>
 <style>
 /* 레이아웃: 한 열 흐름 — 학번·이름 → 결과(채점 후) → 영역별 문항 카드, 하단 고정 채점 바 */
 :root {
@@ -103,11 +103,11 @@ pre.ctx { background: var(--code-bg); color: var(--code-text); border-radius: 8p
 [hidden] { display: none !important; }
 </style>
 </head>
-<body>
+<body data-wc-quiz="devenv" data-wc-pass="90">
 <div class="wrap">
   <header class="top">
-    <h1>개발환경 구축하기 최종 점검</h1>
-    <p>응용프로그래밍 화면구현 · 수행평가 대비 형성평가 20문제 · 답을 단어로 쓰고 [채점하기]를 누르세요. 틀린 문제는 설명을 읽고 고쳐서 100점을 만드세요.</p>
+    <h1>개발환경 구축</h1>
+    <p>응용프로그래밍 화면구현 · 형성평가 20문제 · 답을 단어로 쓰고 [채점하기]를 누르세요. 틀린 문제는 설명을 읽고 고쳐서 100점을 만드세요.</p>
   </header>
 
   <section class="card" id="idcard">
@@ -116,7 +116,7 @@ pre.ctx { background: var(--code-bg); color: var(--code-text); border-radius: 8p
       <label for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
       <label for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
     </div>
-    <p class="note">대문자·소문자는 구분하지 않습니다. 100점이 되면 결과 화면을 캡처해서 제출하세요.</p>
+    <p class="note">대문자·소문자는 구분하지 않습니다. 90점 이상이면 통과입니다.</p>
   </section>
 
   <section class="card result" id="res" hidden aria-live="polite"></section>
@@ -320,12 +320,12 @@ function showResult(id, score, correct) {
   var res = $("res"), now = new Date(), perfect = score === 100;
   res.className = "card result" + (perfect ? " perfect" : "");
   res.innerHTML = "";
-  res.appendChild(el("p", "rtitle", "개발환경 구축하기 최종 점검 결과"));
+  res.appendChild(el("p", "rtitle", "개발환경 구축 형성평가 결과"));
   var who = el("p", "who");
   who.appendChild(el("span", null, id.sid)); who.appendChild(document.createTextNode(" ")); who.appendChild(el("span", null, id.sname));
   res.appendChild(who);
   res.appendChild(el("div", "score", score + "점"));
-  if (perfect) res.appendChild(el("div", "stamp", "✓ 100점 달성 · 캡처해서 제출하세요"));
+  if (perfect) res.appendChild(el("div", "stamp", "✓ 100점 달성"));
   else res.appendChild(el("p", "retry", "틀린 " + (20 - correct) + "문제의 설명을 읽고 답을 고친 뒤 다시 [채점하기]를 누르세요."));
   res.appendChild(el("p", "rdetail", "20문제 중 " + correct + "개 정답 · 첫 채점 " + S.first + "점 · 채점 " + S.tries + "회"));
   var g = el("div", "grid");

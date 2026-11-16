@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>수행평가 대비 최종 점검</title>
+<title>코드 직접 쓰기</title>
 <style>
 /* 레이아웃: 한 열 흐름 — 학번·이름 → 탭(형성평가 20 / 최종평가 10) → 문항 카드, 최종평가는 하단 고정 제출 바 */
 :root {
@@ -139,13 +139,14 @@ textarea.code:disabled, .inl:disabled { opacity: .85; }
 .part { font-size: 14px; letter-spacing: .02em; color: var(--accent); font-weight: 700; margin: 18px 0 8px; }
 .conv { margin: 0 0 10px; font-size: 15px; font-weight: 700; color: var(--text); background: var(--accent-soft); border-radius: 8px; padding: 6px 10px; display: inline-block; }
 [hidden] { display: none !important; }
+.modes, #lockmsg, #viewT, #bar { display: none !important; }
 </style>
 </head>
-<body>
+<body data-wc-quiz="write" data-wc-pass="90">
 <div class="wrap">
   <header class="top">
-    <h1>수행평가 대비 최종 점검</h1>
-    <p>응용프로그래밍 화면구현 · UI 테스트 코드 작성 · 형성평가 20문제를 모두 맞히면 실제 수행평가와 같은 형식의 최종평가 20문제가 열립니다.</p>
+    <h1>코드 직접 쓰기</h1>
+    <p>응용프로그래밍 화면구현 · 코드를 한 줄씩 직접 쓰는 20문제 · 맞히면 해설이 나옵니다. 푼 문제는 나갔다 들어와도 그대로 남습니다.</p>
   </header>
 
   <section class="card" id="idcard">
@@ -154,7 +155,7 @@ textarea.code:disabled, .inl:disabled { opacity: .85; }
       <label for="sid">학번<input type="text" id="sid" inputmode="numeric" autocomplete="off" placeholder="예: 10315" maxlength="10"></label>
       <label for="sname">이름<input type="text" id="sname" autocomplete="off" placeholder="예: 홍길동" maxlength="20"></label>
     </div>
-    <p class="note">형성평가 결과와 최종평가 결과 모두 학번·이름과 함께 표시됩니다. 두 결과 화면을 각각 캡처해서 제출하세요.</p>
+    <p class="note">결과 화면에 학번·이름이 함께 표시됩니다.</p>
   </section>
 
   <div class="modes" role="tablist" aria-label="평가">
@@ -167,8 +168,8 @@ textarea.code:disabled, .inl:disabled { opacity: .85; }
   <div id="viewF" role="tabpanel" aria-labelledby="tabF">
     <section class="card result" id="fRes" hidden aria-live="polite"></section>
     <section class="card done" id="fDone" hidden>
-      <p><b>형성평가 20문제를 모두 풀었습니다.</b> 결과를 확인해 캡처한 뒤 최종평가로 넘어가세요.</p>
-      <button class="btn big" type="button" id="fDoneBtn">형성평가 결과 보기</button>
+      <p><b>20문제를 모두 풀었습니다.</b> 결과를 확인하세요.</p>
+      <button class="btn big" type="button" id="fDoneBtn">결과 보기</button>
     </section>
     <div class="progress"><span>정답 <b id="fCnt">0</b> / 20</span><div class="meter"><i id="fBar"></i></div><span>쉬움 12 · 보통 5 · 어려움 3</span></div>
     <div id="fList"></div>
@@ -583,6 +584,11 @@ function whoLine(id) {
 
 /* ───────── 형성평가 ───────── */
 var F = { solved: {}, hint: {}, start: null };
+/* 푼 문제 기억: 학번별로 이 브라우저에 저장하고, 다시 들어오면 그대로 되살린다 */
+function writeKey() { try { var u = JSON.parse(localStorage.getItem("wc_user")); return u && u.sid ? "wc_write:" + u.sid : null; } catch (e) { return null; } }
+function loadWrite() { try { return JSON.parse(localStorage.getItem(writeKey())) || { solved: {}, hint: {}, ans: {} }; } catch (e) { return { solved: {}, hint: {}, ans: {} }; } }
+function saveWrite(x) { var k = writeKey(); if (k) { try { localStorage.setItem(k, JSON.stringify(x)); } catch (e) {} } }
+var SAVED = loadWrite(), restoring = false;
 function buildForm() {
   var list = $("fList");
   list.innerHTML = "";
@@ -608,7 +614,7 @@ function buildForm() {
     hint.appendChild(el("code", null, it.hint));
     var fb = el("div", "fb");
     hb.addEventListener("click", function () {
-      if (hint.hidden && !F.solved[no]) F.hint[no] = true;   // 맞히기 전에 힌트를 열면 기록
+      if (hint.hidden && !F.solved[no]) { F.hint[no] = true; SAVED.hint[no] = true; saveWrite(SAVED); }   // 맞히기 전에 힌트를 열면 기록
       hint.hidden = !hint.hidden;
       hb.textContent = hint.hidden ? "힌트 보기" : "힌트 닫기";
     });
@@ -620,12 +626,16 @@ function buildForm() {
         card.classList.add("solved");
         badge.textContent = F.hint[no] ? "✓ 정답 · 힌트 보고 풀었음" : "✓ 정답 · 힌트 없이 풀었음";
         if (P.ex) { var exb = el("div", "explain"); exb.appendChild(el("b", null, "해설 ")); exb.appendChild(document.createTextNode(P.ex)); card.appendChild(exb); }
+        if (!restoring) { SAVED.solved[no] = true; SAVED.ans[no] = inp.value; if (F.hint[no]) SAVED.hint[no] = true; saveWrite(SAVED); }
         updateForm();
       }
     });
     row.appendChild(check); row.appendChild(hb);
     card.appendChild(row); card.appendChild(hint); card.appendChild(fb);
     list.appendChild(card);
+    if (SAVED.solved[no] && SAVED.ans[no] != null) {      // 전에 푼 문제 되살리기
+      restoring = true; inp.value = SAVED.ans[no]; if (SAVED.hint[no]) F.hint[no] = true; check.click(); restoring = false;
+    }
   });
   updateForm();
 }
@@ -645,7 +655,7 @@ function showFormResult() {
   var now = new Date(), used = 0;
   var res = $("fRes");
   res.innerHTML = "";
-  res.appendChild(el("p", "rtitle", "수행평가 대비 형성평가 20문제 결과"));
+  res.appendChild(el("p", "rtitle", "코드 직접 쓰기 20문제 결과"));
   res.appendChild(whoLine(id));
   res.appendChild(el("div", "big2", "✓ 20문제 모두 풀었음"));
   var g = el("div", "grid");
@@ -661,9 +671,10 @@ function showFormResult() {
   res.appendChild(g);
   res.appendChild(el("p", "legend", "자력 = 힌트 없이 풀었음 · 힌트 = 힌트 보고 풀었음"));
   res.appendChild(el("p", "meta", "완료 " + stamp(now)));
-  var go = el("button", "btn big", "최종평가로 넘어가기");
-  go.type = "button";
-  go.addEventListener("click", function () { setTab("T"); });
+  var go = el("a", "btn big", "형성평가 목록으로"); go.href = "../index.html";
+  var redo = el("button", "btn ghost", "처음부터 다시 풀기"); redo.type = "button"; redo.style.marginRight = "8px";
+  redo.addEventListener("click", function () { saveWrite({ solved: {}, hint: {}, ans: {} }); location.reload(); });
+  res.appendChild(redo);
   res.appendChild(go);
   res.hidden = false;
   $("fDone").hidden = true;
@@ -819,11 +830,11 @@ function lockDuplicate() {
 function watchOtherWindows() {
   var me = Math.random().toString(36).slice(2), send, ch = null;
   function onMsg(x) { if (!x || x.id === me) return; if (x.type === "hello") send({ type: "here", id: me }); lockDuplicate(); }
-  try { ch = new BroadcastChannel("hwamyeon-exam-final-check"); } catch (e) { ch = null; }
+  try { ch = new BroadcastChannel("wc-quiz-write"); } catch (e) { ch = null; }
   if (ch) { ch.onmessage = function (e) { onMsg(e.data); }; send = function (x) { try { ch.postMessage(x); } catch (e) {} }; }
   else {
-    window.addEventListener("storage", function (e) { if (e.key === "hwamyeon-exam-final-check" && e.newValue) { try { onMsg(JSON.parse(e.newValue)); } catch (x) {} } });
-    send = function (x) { try { x.t = Date.now(); localStorage.setItem("hwamyeon-exam-final-check", JSON.stringify(x)); } catch (e) {} };
+    window.addEventListener("storage", function (e) { if (e.key === "wc-quiz-write" && e.newValue) { try { onMsg(JSON.parse(e.newValue)); } catch (x) {} } });
+    send = function (x) { try { x.t = Date.now(); localStorage.setItem("wc-quiz-write", JSON.stringify(x)); } catch (e) {} };
   }
   send({ type: "hello", id: me });
 }
