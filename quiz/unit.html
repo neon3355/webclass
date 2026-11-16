@@ -71,11 +71,22 @@
     var rest = shuffle(pool.filter(function (q) { return first.indexOf(q) < 0; }));
     picked = shuffle(first.concat(rest).slice(0, WC_QUIZ_REVIEW)); name = "종합 복습";
   } else {
-    picked = shuffle(WC_QUIZ.filter(function (q) { return q.u === unit.id; })).slice(0, unit.count); name = unit.name;
+    /* 단원 평가: 맞힌 문제는 저장하고 틀린 문제만 다시 푼다. 진행 상태는 학번별로 이 브라우저에 저장 */
+    var KEY = "wc_unit:" + u.sid + ":" + unit.id, prog = null;
+    try { prog = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+    var bank = WC_QUIZ.filter(function (q) { return q.u === unit.id; });
+    if (!prog || !prog.ids || !prog.ids.some(function (id) { return !prog.right[id]; })) {
+      prog = { ids: shuffle(bank).slice(0, unit.count).map(function (q) { return q.id; }), right: {}, rounds: 0 };
+    }
+    picked = shuffle(bank.filter(function (q) { return prog.ids.indexOf(q.id) >= 0 && !prog.right[q.id]; })); name = unit.name;
   }
+  function saveProg() { try { if (prog.ids.some(function (id) { return !prog.right[id]; })) localStorage.setItem(KEY, JSON.stringify(prog)); else localStorage.removeItem(KEY); } catch (e) {} }
+  var TOTAL = review ? picked.length : prog.ids.length, KEPT = TOTAL - picked.length;
   document.title = name + " 형성평가";
   $("title").textContent = name;
-  $("lead").textContent = picked.length + "문제 · " + PASS + "점 이상이면 통과입니다. 문제와 보기 순서는 할 때마다 바뀝니다." + (review ? " 전에 틀린 문제가 먼저 나옵니다." : "");
+  $("lead").textContent = review ? picked.length + "문제 · " + PASS + "점 이상이면 통과입니다. 문제와 보기 순서는 할 때마다 바뀌고, 전에 틀린 문제가 먼저 나옵니다."
+    : KEPT ? "전체 " + TOTAL + "문제 중 맞힌 " + KEPT + "문제는 저장되어 있습니다. 남은 " + picked.length + "문제만 다시 풉니다. 모두 맞히면 통과입니다."
+    : TOTAL + "문제 · 모두 맞히면 통과입니다. 틀린 문제는 설명을 읽고 그 문제만 다시 풉니다. 맞힌 문제는 나갔다 들어와도 남아 있습니다.";
   $("total").textContent = picked.length;
 
   var S = picked.map(function (q) { return { q: q, perm: shuffle([0, 1, 2, 3]), pick: -1, card: null }; }), start = null, graded = false;
@@ -113,7 +124,7 @@
     var ok = 0, wrong = WC.wrong(), time = start ? Date.now() - start : 0;
     S.forEach(function (st) {
       var q = st.q, orig = st.perm[st.pick], right = orig === q.ans;
-      if (right) { ok++; delete wrong[q.id]; } else wrong[q.id] = 1;
+      if (right) { ok++; if (review) delete wrong[q.id]; else prog.right[q.id] = 1; } else wrong[q.id] = 1;   // 단원에서 틀린 문제는 종합 복습에서 맞힐 때까지 기억
       st.right = right;
       st.card.classList.add("graded", right ? "ok" : "ng");
       Array.prototype.forEach.call(st.card.querySelectorAll("input"), function (r) { r.disabled = true; });
@@ -124,20 +135,22 @@
       st.card.appendChild(fb);
     });
     WC.setWrong(wrong);
-    var score = Math.round(ok / S.length * 100), pass = score >= PASS;
-    WC.addRecord("quiz2:" + (review ? "review" : unit.id), { group: "형성평가", title: name, score: score, unit: "점", detail: ok + "/" + S.length + " · " + WC.mmss(time), pass: pass });
+    var got = review ? ok : KEPT + ok, left = TOTAL - got;
+    var score = Math.round(got / TOTAL * 100), pass = review ? score >= PASS : left === 0;
+    if (!review) { prog.rounds++; var rounds = prog.rounds; saveProg(); }
+    WC.addRecord("quiz2:" + (review ? "review" : unit.id), { group: "형성평가", title: name, score: score, unit: "점", detail: got + "/" + TOTAL + (review ? "" : " · " + rounds + "번째 채점") + " · " + WC.mmss(time), pass: pass });
     var res = $("res"); res.innerHTML = ""; res.hidden = false;
     res.appendChild(el("p", "rtitle", name + " 형성평가 결과"));
     res.appendChild(el("p", "who", u.sid + " " + u.name));
     var sc = el("div", "score", String(score)); sc.appendChild(el("small", null, " 점")); res.appendChild(sc);
-    res.appendChild(el("p", "rdetail", "맞은 문제 " + ok + " / " + S.length + " · 걸린 시간 " + WC.mmss(time) + " · " + WC.stamp(Date.now())));
-    if (pass) res.appendChild(el("div", "stamp", "✓ 통과 (" + PASS + "점 이상)"));
-    else res.appendChild(el("p", "again", PASS + "점 이상이면 통과입니다. 틀린 문제의 설명을 읽고 다시 도전하세요."));
+    res.appendChild(el("p", "rdetail", "맞힌 문제 " + got + " / " + TOTAL + (review ? "" : " · " + rounds + "번째 채점") + " · 걸린 시간 " + WC.mmss(time) + " · " + WC.stamp(Date.now())));
+    if (pass) res.appendChild(el("div", "stamp", review ? "✓ 통과 (" + PASS + "점 이상)" : "✓ 통과 (모두 맞힘)"));
+    else res.appendChild(el("p", "again", review ? PASS + "점 이상이면 통과입니다. 틀린 문제의 설명을 읽고 다시 도전하세요." : "틀린 " + left + "문제의 설명을 읽고, 그 문제만 다시 푸세요. 맞힌 문제는 저장되었습니다."));
     var g = el("div", "grid2");
     S.forEach(function (st, i) { var a = el("a", st.right ? "o" : "x", (i + 1) + (st.right ? " ○" : " ✗")); a.href = "#q" + (i + 1); g.appendChild(a); });
     res.appendChild(g);
     var row = el("div", "row");
-    var again = el("button", "btn" + (pass ? " ghost" : ""), "다시 풀기"); again.type = "button"; again.addEventListener("click", function () { location.reload(); });
+    var again = el("button", "btn" + (pass ? " ghost" : ""), pass || review ? "다시 풀기" : "틀린 " + left + "문제만 다시 풀기"); again.type = "button"; again.addEventListener("click", function () { location.reload(); });
     var back = el("a", "btn" + (pass ? "" : " ghost"), "형성평가 목록"); back.href = "index.html";
     row.appendChild(again); row.appendChild(back); res.appendChild(row);
     $("gradeBtn").textContent = "다시 풀기";

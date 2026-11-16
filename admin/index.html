@@ -81,7 +81,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     </div>
     <div class="card" style="padding:10px">
       <div class="tablewrap" id="tbl"></div>
-      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m ok">백</span> 백지 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 과제 완주율 = 지금 보는 과제의 파일 5개 평균(파일마다 가장 높이 통과한 단계: 백지 100% · 외워 70% · 보고 40%, 백지를 바로 통과하면 100%) · 전체 완주율 = 배포한 과제 전부와 형성평가 단원·종합 복습까지 합친 비율 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
+      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m ok">백</span> 백지 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 과제 완주율 = 지금 보는 과제의 파일 5개 평균(파일마다 외워 쓰기를 도움 없이 끝내면 100%, 보고 쓰기까지는 50%. 백지 쓰기를 바로 통과해도 100%) · 백지 ★ = 백지 쓰기를 도움 없이 통과한 파일 수 · 전체 완주율 = 배포한 과제 전부와 형성평가 단원·종합 복습까지 합친 비율 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
     </div>
 
     <h2>수기 과제지 관리 <span class="note" id="shInfo"></span></h2>
@@ -218,7 +218,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
     th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
     A.files.forEach(function (f) { th(f.name, "c"); });
-    th("과제 완주율", "c"); th("전체 완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
+    th("과제 완주율", "c"); th("백지 ★", "c"); th("전체 완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
     var pctSum = 0, asgSum = 0;
     t.appendChild(hr);
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
@@ -258,6 +258,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       });
       var prA = WC.progress(rec, [A.id]).asg[A.id]; s.asgPct = prA; asgSum += prA;
       var pa = el("td", "c"); pa.appendChild(el("span", "badge " + (prA === 100 ? "ok" : prA ? "mid" : "todo"), prA + "%")); tr.appendChild(pa);
+      var stA = WC.progress(rec, [A.id]); tr.appendChild(el("td", "c", stA.stars ? "★ " + stA.stars + " / " + stA.starMax : "-"));
       var pr = WC.progress(rec, D.assign); pctSum += pr.pct;
       var pc = el("td", "c"); pc.appendChild(el("span", "badge " + (pr.pct === 100 ? "ok" : pr.pct ? "mid" : "todo"), pr.total ? pr.pct + "%" : "-")); tr.appendChild(pc);
       tr.appendChild(el("td", "c", qOn.length ? "통과 " + quiz + " / " + qOn.length + (rv ? " · 복습 " + rv.count + "회(최고 " + rv.best + ")" : "") : "-"));

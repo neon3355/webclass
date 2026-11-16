@@ -96,8 +96,8 @@
     /* 완주 현황: 배포된 과제(파일마다 보고·외워·백지)와 형성평가 단원, 종합 복습을 얼마나 끝냈는지.
        rec = 기록 요약, assign = 배포 목록(없으면 전부). 돌려주는 값: { done, total, pct, groups:[{name, parts:[{label, done, total}]}] } */
     progress: function (rec, assign) {
-      /* 파일 하나의 점수 = 도달한 가장 높은 단계. 백지 쓰기를 통과하면 보고·외워 쓰기를 안 했어도 100점 */
-      var SC = CFG.fileScore || { see: 40, mem: 70, blank: 100 };
+      /* 파일 하나의 점수 = 도달한 가장 높은 단계. 외워 쓰기를 도움 없이 끝내면 완주(100), 백지 쓰기는 그 위의 도전 단계(★) */
+      var SC = CFG.fileScore || { see: 50, mem: 100, blank: 100 };
       var As = window.WC_ASSIGNMENTS || [], Us = window.WC_QUIZ_UNITS || [], groups = [], done = 0, total = 0, asg = {};
       if (assign) { As = assign.map(function (id) { return As.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean); Us = Us.filter(function (x) { return assign.indexOf("q:" + x.id) >= 0; }); }
       As.forEach(function (A) {
@@ -120,7 +120,8 @@
         done += qd; total += qt;
         groups.push({ name: "형성평가", pct: Math.round(qd / qt * 100), parts: parts });
       }
-      return { total: total, pct: total ? Math.round(done / total * 100) : 0, groups: groups, asg: asg, score: SC };
+      var stars = 0, starMax = 0; groups.forEach(function (g) { if (g.parts[0].label === "백지 쓰기") { stars += g.parts[0].done; starMax += g.parts[0].total; } });
+      return { stars: stars, starMax: starMax, total: total, pct: total ? Math.round(done / total * 100) : 0, groups: groups, asg: asg, score: SC };
     },
     /* 시연 모드: 선생님이 학생 화면을 미리 보거나 수업에서 보여 줄 때. 기록은 이 브라우저에만 남고 서버로 가지 않는다 */
     startDemo: function (assign) {

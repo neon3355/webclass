@@ -40,6 +40,8 @@
 .ln.help .tx { color: #ffd166; }
 .ln.cur { background: #24344a; box-shadow: inset 3px 0 0 var(--code-key); }
 .ln.cur .tx { color: #fff; white-space: pre-wrap; word-break: break-all; }
+.ln .cm { margin-left: 2.5em; color: #6f8098; font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif; font-size: 13px; }
+.ln .cm.cur { display: block; margin: 0; color: var(--code-key); white-space: normal; }
 .ln.cur .hint { color: var(--code-key); font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif; white-space: normal; }
 .dock { position: sticky; bottom: 0; background: var(--card); border: 1px solid var(--line); border-radius: 12px 12px 0 0; padding: 12px; margin-top: 12px; box-shadow: 0 -4px 14px rgba(0,0,0,.08); }
 .dock .rowin { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
@@ -97,7 +99,7 @@
   WC.blockPaste();
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-  var MODES = { 1: { name: "보고 쓰기", desc: "파란 줄에 보이는 코드를 그대로 쓰고 Enter를 누르세요." },
+  var MODES = { 1: { name: "보고 쓰기", desc: "파란 줄에 보이는 코드를 그대로 쓰고 Enter를 누르세요. 코드 옆의 ← 설명은 그 줄이 하는 일입니다. (설명은 쓰지 않습니다)" },
                 2: { name: "외워 쓰기", desc: "코드는 가려져 있습니다. 파란 줄의 설명을 보고 코드를 쓰세요. 정말 모르겠으면 [보기]를 누르세요. (본 줄은 기록됩니다)" },
                 3: { name: "백지 쓰기", desc: "설명도 코드도 없습니다. 시험처럼 처음부터 끝까지 기억해서 쓰세요. style.css는 묶음 순서와 묶음 안의 줄 순서가 달라도 됩니다. 막히면 [힌트] → [보기] 순서로 도움을 받을 수 있습니다. (도움 받은 줄은 기록됩니다)" } };
   var BASE = { 1: 2, 2: 1, 3: 0 };   // 처음에 보여 주는 정도: 2 = 코드, 1 = 설명, 0 = 아무것도 없음
@@ -235,10 +237,10 @@
       else if (l.auto) tx.textContent = l.auto;
       else if (l.st === "done" || l.st === "help") tx.textContent = indent(l.in) + l.t;
       else if (l.st === "cur") {
-        if (S.lv >= 2) tx.textContent = indent(l.in) + l.t;
+        if (S.lv >= 2) { tx.textContent = indent(l.in) + l.t; if (S.m === 1 && l.h) tx.appendChild(el("span", "cm cur", "← " + l.h)); }
         else { tx.textContent = indent(l.in); tx.appendChild(el("span", "hint", S.lv === 1 ? "▶ " + l.h : "▶ 여기에 들어갈 코드를 기억해서 쓰세요")); }
         curEl = row;
-      } else tx.textContent = S.m === 1 ? indent(l.in) + l.t : indent(l.in) + "· · ·";
+      } else { tx.textContent = S.m === 1 ? indent(l.in) + l.t : indent(l.in) + "· · ·"; if (S.m === 1 && l.h) tx.appendChild(el("span", "cm", "← " + l.h)); }
       row.appendChild(tx);
       p.appendChild(row);
     });
