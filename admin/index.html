@@ -71,7 +71,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     </div>
     <div class="card" style="padding:10px">
       <div class="tablewrap" id="tbl"></div>
-      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
+      <p class="legend"><span class="m ok">보</span> 보고 쓰기 완료 · <span class="m ok">외</span> 외워 쓰기를 도움 없이 완료 · <span class="m ok">백</span> 백지 쓰기를 도움 없이 완료 · <span class="m mid">외</span> 도움 받아 완료 · <span class="m">보</span> 아직 안 함 · 완주율 = 배포한 과제(파일마다 보고·외워·백지)와 형성평가 단원·종합 복습 가운데 끝낸 비율 · 학생 줄을 누르면 날짜별 기록이 나옵니다.</p>
     </div>
 
     <h2>수기 과제지 관리 <span class="note" id="shInfo"></span></h2>
@@ -208,7 +208,8 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
     th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
     A.files.forEach(function (f) { th(f.name, "c"); });
-    th("진행", "c"); th("형성평가", "c"); th("수기 과제지", "c");
+    th("진행", "c"); th("완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
+    var pctSum = 0;
     t.appendChild(hr);
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
       var log = by[s.sid] || [], rec = WC.summarize(log), tr = el("tr", "st"), speed = 0, quiz = 0, done = 0, todayN = 0;
@@ -238,12 +239,16 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       tr.appendChild(el("td", "c", speed ? speed + "타" : "-"));
       A.files.forEach(function (f) {
         var td = el("td", "c"), r1 = rec["code:" + A.id + ":" + f.id + ":1"], r2 = rec["code:" + A.id + ":" + f.id + ":2"];
+        var r3 = rec["code:" + A.id + ":" + f.id + ":3"];
         td.appendChild(el("span", "m" + (r1 ? " ok" : ""), "보")); td.appendChild(document.createTextNode(" "));
-        td.appendChild(el("span", "m" + (r2 ? (r2.pass ? " ok" : " mid") : ""), "외"));
-        if (r1) done++; if (r2 && r2.pass) done++;
+        td.appendChild(el("span", "m" + (r2 ? (r2.pass ? " ok" : " mid") : ""), "외")); td.appendChild(document.createTextNode(" "));
+        td.appendChild(el("span", "m" + (r3 ? (r3.pass ? " ok" : " mid") : ""), "백"));
+        if (r1) done++; if (r2 && r2.pass) done++; if (r3 && r3.pass) done++;
         tr.appendChild(td);
       });
-      tr.appendChild(el("td", "c", done + " / " + A.files.length * 2));
+      tr.appendChild(el("td", "c", done + " / " + A.files.length * 3));
+      var pr = WC.progress(rec, D.assign); pctSum += pr.pct;
+      var pc = el("td", "c"); pc.appendChild(el("span", "badge " + (pr.pct === 100 ? "ok" : pr.pct ? "mid" : "todo"), pr.total ? pr.pct + "%" : "-")); tr.appendChild(pc);
       tr.appendChild(el("td", "c", qOn.length ? "통과 " + quiz + " / " + qOn.length + (rv ? " · 복습 " + rv.count + "회(최고 " + rv.best + ")" : "") : "-"));
       var shs = D.sheets.filter(function (x) { return x.sid === s.sid && x.aid === A.id; })[0], shTd = el("td", "c");
       if (shs) shTd.appendChild(el("span", "badge " + (shs.done ? "ok" : "mid"), shs.done ? "제출" : "미제출")); else shTd.textContent = "-";
@@ -252,6 +257,7 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
       t.appendChild(tr);
     });
     box.appendChild(t);
+    $("asgPick").textContent += " · 반 평균 완주율 " + Math.round(pctSum / D.students.length) + "%";
     pickInfo(); drawSheets();
   }
   /* 수기 과제지: 누구에게 출력해 줬는지, 제출했는지 */

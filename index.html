@@ -27,6 +27,13 @@
 .tabs2 button { font: inherit; font-weight: 700; padding: 9px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--sub); cursor: pointer; }
 .tabs2 button[aria-pressed=true] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 .now { border: 2px solid var(--accent); margin-bottom: 20px; }
+.fin { margin-bottom: 20px; }
+.finh { display: flex; justify-content: space-between; align-items: baseline; } .finh span { font-weight: 800; font-size: 20px; color: var(--ok); font-variant-numeric: tabular-nums; }
+.finbar { height: 12px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 6px 0 10px; } .finbar i { display: block; height: 100%; background: var(--ok); }
+.fing { display: grid; gap: 6px; font-size: 14px; }
+.fing .g { display: flex; gap: 6px 10px; flex-wrap: wrap; align-items: center; } .fing .g b { min-width: 64px; }
+.fing .p { padding: 1px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--sub); font-variant-numeric: tabular-nums; }
+.fing .p.all { border-color: var(--ok); background: var(--ok-soft); color: var(--ok); font-weight: 700; }
 .now .k { font-size: 13px; font-weight: 700; color: var(--accent); margin: 0; }
 .now h2 { margin: 2px 0 4px; font-size: 20px; }
 .now p { margin: 0; color: var(--sub); font-size: 14px; }
@@ -62,11 +69,16 @@
       <p>오늘도 위에서부터 차례로 하세요. 손이 코드를 기억할 때까지 직접 쓰는 것이 목표입니다.</p>
     </div>
     <div class="card now" id="now" hidden><p class="k" id="nowK"></p><h2 id="nowT"></h2><p id="nowD"></p></div>
+    <div class="card fin" id="fin" hidden>
+      <div class="finh"><b>내 완주 현황</b><span id="finPct"></span></div>
+      <div class="finbar"><i id="finBar"></i></div>
+      <div class="fing" id="finG"></div>
+    </div>
     <h2>오늘의 순서</h2>
     <div class="steps">
       <a class="card step" href="typing/index.html"><div class="n">1</div><div><h3>타자 연습</h3><p>수업 코드에 나오는 낱말 → 기호 → 코드 한 줄. 타수와 정확도를 잽니다.</p><div class="st" id="st1"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="code/index.html"><div class="n">2</div><div><h3>코드 보고 쓰기</h3><p>이번 과제의 style.css와 JSP 파일을 한 줄씩 보고 따라 씁니다. 실행 화면도 함께 보입니다.</p><div class="st" id="st2"></div></div><span class="go">시작 →</span></a>
-      <a class="card step" href="code/index.html"><div class="n">3</div><div><h3>코드 외워 쓰기</h3><p>코드는 가리고 설명만 보고 씁니다. 보고 쓰기를 끝낸 파일부터 도전하세요.</p><div class="st" id="st3"></div></div><span class="go">시작 →</span></a>
+      <a class="card step" href="code/index.html"><div class="n">3</div><div><h3>코드 외워 쓰기 · 백지 쓰기</h3><p>설명만 보고 쓰고, 마지막에는 아무것도 없이 씁니다. 백지 쓰기까지 끝내면 완주입니다.</p><div class="st" id="st3"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="quiz/index.html"><div class="n">4</div><div><h3>형성평가</h3><p>단원별로 90점 이상이면 통과. 모두 통과하면 종합 복습이 열립니다.</p><div class="st" id="st4"></div></div><span class="go">시작 →</span></a>
       <a class="card step" href="report/index.html"><div class="n">5</div><div><h3>내 과제 현황</h3><p>오늘 한 활동과 날짜별 연습 기록을 봅니다.</p><div class="st" id="st5"></div></div><span class="go">보기 →</span></a>
     </div>
@@ -74,6 +86,7 @@
 </main>
 <script src="assets/config.js"></script>
 <script src="assets/data.js"></script>
+<script src="assets/quizdata.js"></script>
 <script src="assets/common.js"></script>
 <script>
 (function () {
@@ -99,6 +112,19 @@
       $("nowT").textContent = cur ? cur.title : "아직 배포된 과제가 없습니다";
       $("nowD").textContent = cur ? cur.files.map(function (f) { return f.name; }).join(" · ") : "선생님이 과제를 배포하면 여기에 나타납니다. 그동안 타자 연습을 하세요.";
     }
+    /* 완주 현황 */
+    var pr = WC.progress(WC.records(), WC.online ? (WC.user().assign || []) : null);
+    $("fin").hidden = !pr.total;
+    if (pr.total) {
+      $("finPct").textContent = pr.pct + "%"; $("finBar").style.width = pr.pct + "%";
+      var fg = $("finG"); fg.innerHTML = "";
+      pr.groups.forEach(function (g) {
+        var row = document.createElement("div"); row.className = "g";
+        var b = document.createElement("b"); b.textContent = g.name; row.appendChild(b);
+        g.parts.forEach(function (x) { var sp = document.createElement("span"); sp.className = "p" + (x.done === x.total ? " all" : ""); sp.textContent = x.label + " " + x.done + "/" + x.total; row.appendChild(sp); });
+        fg.appendChild(row);
+      });
+    }
     var rec = WC.records(), today = WC.today(), t = { typing: 0, see: 0, mem: 0, quiz: 0, all: 0 }, bestSpeed = 0;
     Object.keys(rec).forEach(function (id) {
       var r = rec[id];
@@ -106,7 +132,7 @@
       t.all++;
       if (id.indexOf("typing:") === 0) { t.typing++; bestSpeed = Math.max(bestSpeed, r.best); }
       else if (id.indexOf("code:") === 0 && /:1$/.test(id)) t.see++;
-      else if (id.indexOf("code:") === 0 && /:2$/.test(id)) t.mem++;
+      else if (id.indexOf("code:") === 0 && /:[23]$/.test(id)) t.mem++;
       else if (id.indexOf("quiz2:") === 0) t.quiz++;
     });
     function set(id, txt) { $(id).textContent = txt; }

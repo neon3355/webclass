@@ -93,6 +93,28 @@
       var on = (u && u.assign) || [];
       return all.filter(function (x) { return on.indexOf("q:" + x.id) >= 0; });
     },
+    /* 완주 현황: 배포된 과제(파일마다 보고·외워·백지)와 형성평가 단원, 종합 복습을 얼마나 끝냈는지.
+       rec = 기록 요약, assign = 배포 목록(없으면 전부). 돌려주는 값: { done, total, pct, groups:[{name, parts:[{label, done, total}]}] } */
+    progress: function (rec, assign) {
+      var As = window.WC_ASSIGNMENTS || [], Us = window.WC_QUIZ_UNITS || [], groups = [], done = 0, total = 0;
+      if (assign) { As = assign.map(function (id) { return As.filter(function (a) { return a.id === id; })[0]; }).filter(Boolean); Us = Us.filter(function (x) { return assign.indexOf("q:" + x.id) >= 0; }); }
+      As.forEach(function (A) {
+        var parts = [["보고 쓰기", 1], ["외워 쓰기", 2], ["백지 쓰기", 3]].map(function (m) {
+          var n = 0;
+          A.files.forEach(function (f) { var r = rec["code:" + A.id + ":" + f.id + ":" + m[1]]; if (r && r.pass) n++; });
+          done += n; total += A.files.length;
+          return { label: m[0], done: n, total: A.files.length };
+        });
+        groups.push({ name: A.name, parts: parts });
+      });
+      if (Us.length) {
+        var n = 0; Us.forEach(function (x) { var r = rec["quiz2:" + x.id]; if (r && r.pass) n++; });
+        var parts = [{ label: "단원 통과", done: n, total: Us.length }]; done += n; total += Us.length;
+        if (Us.some(function (x) { return x.kind === "mcq"; })) { var rv = rec["quiz2:review"], ok = rv && rv.pass ? 1 : 0; parts.push({ label: "종합 복습", done: ok, total: 1 }); done += ok; total += 1; }
+        groups.push({ name: "형성평가", parts: parts });
+      }
+      return { done: done, total: total, pct: total ? Math.round(done / total * 100) : 0, groups: groups };
+    },
     /* 틀린 문제 기억 (종합 복습에서 먼저 출제) */
     wrong: function () { var u = WC.user(); return u ? (lsGet("wc_wrong:" + u.sid) || {}) : {}; },
     setWrong: function (m) { var u = WC.user(); if (u) lsSet("wc_wrong:" + u.sid, m); },
