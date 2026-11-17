@@ -7,7 +7,7 @@
 <title>관리자</title>
 <link rel="stylesheet" href="../assets/common.css">
 <style>
-.wrap { max-width: 1180px; }
+.wrap { max-width: 1800px; }
 .login { max-width: 420px; margin: 40px auto 0; display: grid; gap: 12px; }
 .bar3 { display: flex; gap: 8px 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
 .bar3 select { font: inherit; font-size: 16px; font-weight: 700; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--card); color: var(--text); }
@@ -216,9 +216,9 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
     th("학번"); th("이름");
     var pwh = th("비번 "), tg = el("button", "btn ghost sm", showPw ? "가리기" : "보기"); tg.type = "button"; tg.style.padding = "0 8px"; tg.style.fontSize = "12px";
     tg.addEventListener("click", function (e) { e.stopPropagation(); showPw = !showPw; drawTable(); }); pwh.appendChild(tg);
-    th("마지막 로그인"); th("오늘", "c"); th("타자 최고", "c");
+    th("과제 완주율", "c"); th("백지 ★", "c"); th("전체 완주율", "c"); th("오늘", "c"); th("타자 최고", "c");
     A.files.forEach(function (f) { th(f.name, "c"); });
-    th("과제 완주율", "c"); th("백지 ★", "c"); th("전체 완주율", "c"); th("형성평가", "c"); th("수기 과제지", "c");
+    th("형성평가", "c"); th("수기 과제지", "c"); th("마지막 로그인");
     var pctSum = 0, asgSum = 0;
     t.appendChild(hr);
     D.students.slice().sort(function (a, b) { return a.sid < b.sid ? -1 : 1; }).forEach(function (s) {
@@ -244,7 +244,12 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
         }).catch(function () { say("저장하지 못했습니다. 다시 눌러 보세요.", true); rs.disabled = false; });
       });
       pwTd.appendChild(rs); tr.appendChild(pwTd);
-      tr.appendChild(el("td", null, s.lastLogin));
+      /* 완주율은 스크롤하지 않아도 보이게 앞쪽에, 마지막 로그인은 맨 오른쪽에 둔다 */
+      var prA = WC.progress(rec, [A.id]).asg[A.id]; s.asgPct = prA; asgSum += prA;
+      var pa = el("td", "c"); pa.appendChild(el("span", "badge " + (prA === 100 ? "ok" : prA ? "mid" : "todo"), prA + "%")); tr.appendChild(pa);
+      var stA = WC.progress(rec, [A.id]); tr.appendChild(el("td", "c", stA.stars ? "★ " + stA.stars + " / " + stA.starMax : "-"));
+      var pr = WC.progress(rec, D.assign); pctSum += pr.pct;
+      var pc = el("td", "c"); pc.appendChild(el("span", "badge " + (pr.pct === 100 ? "ok" : pr.pct ? "mid" : "todo"), pr.total ? pr.pct + "%" : "-")); tr.appendChild(pc);
       tr.appendChild(el("td", "c", todayN ? todayN + "번" : "-"));
       tr.appendChild(el("td", "c", speed ? speed + "타" : "-"));
       A.files.forEach(function (f) {
@@ -256,15 +261,11 @@ table.tbl tr.st { cursor: pointer; } table.tbl tr.st:hover td { background: var(
         if (r1) done++; if (r2 && r2.pass) done++; if (r3 && r3.pass) done++;
         tr.appendChild(td);
       });
-      var prA = WC.progress(rec, [A.id]).asg[A.id]; s.asgPct = prA; asgSum += prA;
-      var pa = el("td", "c"); pa.appendChild(el("span", "badge " + (prA === 100 ? "ok" : prA ? "mid" : "todo"), prA + "%")); tr.appendChild(pa);
-      var stA = WC.progress(rec, [A.id]); tr.appendChild(el("td", "c", stA.stars ? "★ " + stA.stars + " / " + stA.starMax : "-"));
-      var pr = WC.progress(rec, D.assign); pctSum += pr.pct;
-      var pc = el("td", "c"); pc.appendChild(el("span", "badge " + (pr.pct === 100 ? "ok" : pr.pct ? "mid" : "todo"), pr.total ? pr.pct + "%" : "-")); tr.appendChild(pc);
       tr.appendChild(el("td", "c", qOn.length ? "통과 " + quiz + " / " + qOn.length + (rv ? " · 복습 " + rv.count + "회(최고 " + rv.best + ")" : "") : "-"));
       var shs = D.sheets.filter(function (x) { return x.sid === s.sid && x.aid === A.id; })[0], shTd = el("td", "c");
       if (shs) shTd.appendChild(el("span", "badge " + (shs.done ? "ok" : "mid"), shs.done ? "제출" : "미제출")); else shTd.textContent = "-";
       tr.appendChild(shTd);
+      tr.appendChild(el("td", null, s.lastLogin));
       tr.addEventListener("click", function () { detail(s, log); });
       t.appendChild(tr);
     });
